@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modules>
+   <plugin class="org.apache.jspwiki.plugins.panels.PanelPlugin">
+      <author>DigitalSpider</author>
+      <minVersion>2.10.1</minVersion>
+      <script>panel/panel.js</script>
+      <stylesheet>panel/panel.css</stylesheet>
+      <alias>Panel</alias>
+   </plugin>
+   <plugin class="org.apache.jspwiki.plugins.panels.PanelPluginPlus">
+      <author>DigitalSpider</author>
+      <minVersion>2.10.1</minVersion>
+      <script>/jscolor/jscolor.js</script>
+      <script>/panel/panel.js</script>
+      <stylesheet>/panel/panel.css</stylesheet>
+      <alias>PanelPlus</alias>
+   </plugin>
+</modules>

@@ -1,0 +1,82 @@
+/*
+ * Copyright (C) 2014 David Vittor http://digitalspider.com.au
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jspwiki.plugins.gallery;
+
+import org.apache.jspwiki.plugins.gallery.ImageGalleryPlugin;
+import java.util.Collection;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+public class ImageGalleryPluginTest {
+
+    String VALID_URL = "http://smh.com.au";
+    String FILE_URL = "file://smhfs&%@dfwe?rwrsdfsdf";
+    String FUNNY_URL = "http://smhfs&%@dfwe?rwrsdfsdf";
+    String INVALID_URL = "ht1tp://smhfs&%@dfwe?rwrsdfsdf";
+    String HTML_DATA
+            = "    <article class='article feature hero-portrait clippingArea clippingAction' data-assetId='d-109sjh' data-assetType='ARTICLE' data-assetUrl='http://www.smh.com.au/world/lady-alqaeda-the-useducated-phd-the-islamic-state-desperately-wants-to-free-20140829-109sjh.html'>"
+            + "        <!-- javascript will insert <button class='clipping' title='Save [headline]'>Add to my clippings</button> here, by using data attributes attached to article tag above.-->"
+            + "                        <a href='http://www.smh.com.au/world/lady-alqaeda-the-useducated-phd-the-islamic-state-desperately-wants-to-free-20140829-109sjh.html' title=''Lady al-Qaeda': The US-educated PhD the Islamic State desperately wants to free'><img src='http://images.smh.com.au/2014/08/29/5718893/ladyalqaeda-300x370.jpg' width='300' height='370' alt='Dr Aafia Siddiqui' /></a>"
+            + "            <div class='wof'>                "
+            + "        <h3><a href='http://www.smh.com.au/world/lady-alqaeda-the-useducated-phd-the-islamic-state-desperately-wants-to-free-20140829-109sjh.html' title='Militants want their lady back'>Militants want their lady back</a></h3>        "
+            + "                <p>She was a brilliant neuroscientist and mother, who apparently cast off comfort and success to  became the most wanted woman in the world.</p>"
+            + "            </div>"
+            + "    </article><!-- class:article -->"
+            + "                </div>"
+            + "                <div class='col last'>"
+            + "    <article class='article feature' >"
+            + "        <!-- javascript will insert <button class='clipping' title='Save [headline]'>Add to my clippings</button> here, by using data attributes attached to article tag above.-->"
+            + "            <span class='kicker'>smh.tv</span>"
+            + "                        <a href='Rom-com starring David Boreanaz. Lance is Mr Fix It, the ultimate player, until he meets his dream girl.' title='Mr Fix It'><img src='http://images.smh.com.au/2014/08/29/5716645/fix_st-300x0.jpg' width='300' alt='Fix' /></a>"
+            + "            <div class='wof'>                "
+            + "        <h3><a href='Rom-com starring David Boreanaz. Lance is Mr Fix It, the ultimate player, until he meets his dream girl.' title='Mr Fix It'>Mr Fix It</a></h3>        "
+            + "                <p>Rom-com starring David Boreanaz. Lance is Mr Fix It, the ultimate player, until he meets his dream girl.</p>                "
+            + "            </div>"
+            + "    </article><!-- class:article -->";
+
+    @Test
+    public void testUrlValidator() {
+        String url = ImageGalleryPlugin.findFirstByRegex(VALID_URL, ImageGalleryPlugin.REGEX_URL);
+        Assertions.assertEquals(VALID_URL, url,VALID_URL + " should have been a valid URL");
+        url = ImageGalleryPlugin.findFirstByRegex(FUNNY_URL, ImageGalleryPlugin.REGEX_URL);
+        Assertions.assertEquals( FUNNY_URL, url,FUNNY_URL + " should have been a valid URL");
+        url = ImageGalleryPlugin.findFirstByRegex(FILE_URL, ImageGalleryPlugin.REGEX_URL);
+        Assertions.assertEquals( FILE_URL, url,FILE_URL + " should have been a valid URL");
+        url = ImageGalleryPlugin.findFirstByRegex(INVALID_URL, ImageGalleryPlugin.REGEX_URL);
+        Assertions.assertNull(url);
+        Assertions.assertNotSame( INVALID_URL, url,INVALID_URL + " should have been an invalid URL");
+    }
+
+    @Test
+    public void testFindImages() {
+        Collection<String> images = ImageGalleryPlugin.findImages(HTML_DATA);
+        System.out.println("images=" + images);
+        Assertions.assertEquals(2, images.size(), "Did not find 2 images in HTML data");
+        Assertions.assertEquals("http://images.smh.com.au/2014/08/29/5716645/fix_st-300x0.jpg", images.iterator().next(), "Image1 is not valid");
+        Assertions.assertEquals("http://images.smh.com.au/2014/08/29/5718893/ladyalqaeda-300x370.jpg", images.toArray()[1], "Image2 is not valid");
+    }
+
+    @Test
+    public void testPlainTextValidation() {
+        String value = ImageGalleryPlugin.findFirstByRegex("garfield", ImageGalleryPlugin.REGEX_PLAINTEXT);
+        Assertions.assertEquals("garfield", value);
+        Assertions.assertEquals("dilbert-classics", ImageGalleryPlugin.findFirstByRegex("dilbert-classics", ImageGalleryPlugin.REGEX_PLAINTEXT));
+        Assertions.assertEquals("dil", ImageGalleryPlugin.findFirstByRegex("dil//bert-classics", ImageGalleryPlugin.REGEX_PLAINTEXT));
+        Assertions.assertEquals("dilbert", ImageGalleryPlugin.findFirstByRegex("dilbert?classics", ImageGalleryPlugin.REGEX_PLAINTEXT));
+        Assertions.assertEquals("di", ImageGalleryPlugin.findFirstByRegex("di&lbert-classics", ImageGalleryPlugin.REGEX_PLAINTEXT));
+    }
+}
