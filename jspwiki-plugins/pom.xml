@@ -39,7 +39,6 @@
         <module>jspwiki-plugin-iframe</module>
         <module>jspwiki-plugin-image-gallery</module>
         <module>jspwiki-plugin-jdbc</module>
-        <module>jspwiki-plugin-jdbc-page-provider</module>
         <module>jspwiki-plugin-jira</module>
         <module>jspwiki-plugin-panel</module>
         <module>jspwiki-plugin-password</module>
