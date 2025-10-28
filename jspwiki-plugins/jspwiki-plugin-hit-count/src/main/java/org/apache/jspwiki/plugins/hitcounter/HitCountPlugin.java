@@ -15,7 +15,9 @@
  */
 package org.apache.jspwiki.plugins.hitcounter;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 import org.apache.wiki.api.core.Context;
@@ -24,6 +26,8 @@ import org.apache.wiki.api.exceptions.PluginException;
 import org.apache.wiki.api.plugin.Plugin;
 
 public class HitCountPlugin implements Plugin {
+
+    private static final Map<String, AtomicInteger> hits = new HashMap<>();
 
     private final Logger log = Logger.getLogger(HitCountPlugin.class);
     private static final String KEY_PAGEHITCOUNT = "@pageHitCount";
@@ -36,13 +40,12 @@ public class HitCountPlugin implements Plugin {
             Page currentPage = wikiContext.getPage();
             log.info("currentPage=" + currentPage);
             Object pageHitCountAtt = currentPage.getAttribute(KEY_PAGEHITCOUNT);
-            Integer hitCount = 0;
-            if (pageHitCountAtt != null) {
-                hitCount = Integer.parseInt(pageHitCountAtt.toString());
+            if (hits.containsKey(currentPage.getName())) {
+                pageHitCount = hits.get(currentPage.getName()).incrementAndGet();
+            } else {
+                hits.put(currentPage.getName(), new AtomicInteger(1));
+                pageHitCount = 1;
             }
-            hitCount++;
-            pageHitCount = hitCount;
-            currentPage.setAttribute(KEY_PAGEHITCOUNT, hitCount);
         } catch (Exception e) {
             log.error(e, e);
         }
