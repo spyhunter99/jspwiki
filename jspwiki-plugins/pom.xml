@@ -33,7 +33,6 @@
  
 
     <modules>
-        <module>jspwiki-plugin-encrypted-page-provider</module>
         <module>jspwiki-plugin-google-maps</module>
         <module>jspwiki-plugin-hit-count</module>
         <module>jspwiki-plugin-iframe</module>
@@ -42,7 +41,6 @@
         <module>jspwiki-plugin-jira</module>
         <module>jspwiki-plugin-panel</module>
         <module>jspwiki-plugin-plugin-list</module>
-        <module>jspwiki-plugin-tree</module>
         <module>jspwiki-plugin-video</module>
         
     </modules>

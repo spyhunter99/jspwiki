@@ -85,11 +85,7 @@
         </dependency>
         
         
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <version>${project.version}</version>
-            <artifactId>jspwiki-plugin-encrypted-page-provider</artifactId>
-        </dependency>
+       
         <dependency>
             <groupId>${project.groupId}</groupId>
             <version>${project.version}</version>
@@ -130,11 +126,7 @@
             <version>${project.version}</version>
             <artifactId>jspwiki-plugin-plugin-list</artifactId>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <version>${project.version}</version>
-            <artifactId>jspwiki-plugin-tree</artifactId>
-        </dependency>
+       
         <dependency>
             <groupId>${project.groupId}</groupId>
             <version>${project.version}</version>
