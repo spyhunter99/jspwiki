@@ -7,12 +7,12 @@
       <stylesheet>panel/panel.css</stylesheet>
       <alias>Panel</alias>
    </plugin>
-   <plugin class="org.apache.jspwiki.plugins.panels.PanelPluginPlus">
+   <!--<plugin class="org.apache.jspwiki.plugins.panels.PanelPluginPlus">
       <author>DigitalSpider</author>
       <minVersion>2.10.1</minVersion>
       <script>/jscolor/jscolor.js</script>
       <script>/panel/panel.js</script>
       <stylesheet>/panel/panel.css</stylesheet>
       <alias>PanelPlus</alias>
-   </plugin>
+   </plugin>-->
 </modules>

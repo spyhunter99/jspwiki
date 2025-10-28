@@ -131,7 +131,7 @@ public class PanelPlugin implements Plugin {
             addUniqueTemplateResourceRequest(wikiContext, TemplateManager.RESOURCE_STYLESHEET, "panel/" + classId + ".css");
 
             String htmlBody = "";
-            String body = params.get(DefaultPluginManager.PARAM_BODY);
+            String body = params.get("body");
             if (StringUtils.isNotBlank(body)) {
 
                 htmlBody = engine.getManager(RenderingManager.class).textToHTML(wikiContext, body);

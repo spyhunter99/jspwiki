@@ -32,6 +32,11 @@ import org.apache.wiki.api.plugin.Plugin;
 import org.apache.wiki.plugin.PluginManager;
 import org.apache.wiki.render.RenderingManager;
 
+/**
+ * seems like this has some additional capabilities and also lacks a number of settings
+ * from PanelPlugin but the new stuff doesn't seem to be functional in the latest jsp wiki.
+ */
+@Deprecated
 public class PanelPluginPlus implements Plugin {
 
     private final Logger log = Logger.getLogger(PanelPluginPlus.class);
@@ -77,7 +82,7 @@ public class PanelPluginPlus implements Plugin {
 
         try {
             String htmlBody = "";
-            String body = params.get(DefaultPluginManager.PARAM_BODY);
+            String body = params.get("body");
             if (StringUtils.isNotBlank(body)) {
                 htmlBody = engine.getManager(RenderingManager.class).textToHTML(wikiContext, body);
             }
