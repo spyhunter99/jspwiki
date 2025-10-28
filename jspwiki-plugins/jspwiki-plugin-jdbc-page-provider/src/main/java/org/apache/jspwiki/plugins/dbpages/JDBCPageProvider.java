@@ -25,6 +25,7 @@ import org.apache.wiki.api.exceptions.ProviderException;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -62,15 +63,28 @@ public class JDBCPageProvider implements PageProvider {
             con = getConnection();
             try {
                 smt = con.createStatement();
-                smt.executeUpdate("CREATE TABLE " + getTableName()
-                        + "    ( " + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
-                        + "    " + COLUMN_PAGENAME + " VARCHAR(255) NOT NULL,"
-                        + "    " + COLUMN_VERSION + " INTEGER NOT NULL,"
-                        + "    " + COLUMN_TEXT + " CLOB,"
-                        + "    " + COLUMN_AUTHOR + " VARCHAR(255),"
-                        + "    " + COLUMN_CHANGENOTE + " VARCHAR(512),"
-                        + "    " + COLUMN_LASTMODIFIED + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
-                        + "    " + COLUMN_STATUS + " VARCHAR(255) )");
+                if (sqlType == SQLType.DERBY_LOCAL || sqlType == SQLType.DERBY_NETWORK) {
+
+                    smt.executeUpdate("CREATE TABLE " + getTableName()
+                            + "    ( " + COLUMN_ID + " INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1),"
+                            + "    " + COLUMN_PAGENAME + " VARCHAR(255) NOT NULL,"
+                            + "    " + COLUMN_VERSION + " INTEGER NOT NULL,"
+                            + "    " + COLUMN_TEXT + " CLOB,"
+                            + "    " + COLUMN_AUTHOR + " VARCHAR(255),"
+                            + "    " + COLUMN_CHANGENOTE + " VARCHAR(512),"
+                            + "    " + COLUMN_LASTMODIFIED + " BIGINT,"
+                            + "    " + COLUMN_STATUS + " VARCHAR(255) )");
+                } else {
+                    smt.executeUpdate("CREATE TABLE " + getTableName()
+                            + "    ( " + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                            + "    " + COLUMN_PAGENAME + " VARCHAR(255) NOT NULL,"
+                            + "    " + COLUMN_VERSION + " INTEGER NOT NULL,"
+                            + "    " + COLUMN_TEXT + " CLOB,"
+                            + "    " + COLUMN_AUTHOR + " VARCHAR(255),"
+                            + "    " + COLUMN_CHANGENOTE + " VARCHAR(512),"
+                            + "    " + COLUMN_LASTMODIFIED + " BIGINT,"
+                            + "    " + COLUMN_STATUS + " VARCHAR(255) )");
+                }
             } catch (Exception ex) {
                 LOG.warn("error creating table " + getTableName(), ex);
             } finally {
@@ -80,7 +94,7 @@ public class JDBCPageProvider implements PageProvider {
             }
             try {
                 smt = con.createStatement();
-                smt.executeUpdate("CREATE UNIQUE INDEX idx_pages_name_version ON " + getTableName() + " (" 
+                smt.executeUpdate("CREATE UNIQUE INDEX idx_pages_name_version ON " + getTableName() + " ("
                         + COLUMN_PAGENAME + ", " + COLUMN_VERSION + ")");
             } catch (Exception ex) {
                 LOG.warn("error creating index " + getTableName(), ex);
@@ -101,17 +115,22 @@ public class JDBCPageProvider implements PageProvider {
     }
 
     public enum SQLType {
-        MYSQL("com.mysql.jdbc.Driver", "jdbc:mysql:", "jdbc:mysql://hostname:portNumber/databaseName"),
-        MSSQL("com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver:", "jdbc:sqlserver://serverName\\instanceName:portNumber"),
-        POSTGRESQL("org.postgresql.Driver", "jdbc:postgresql:", "jdbc:postgresql://hostname:portNumber/databaseName"),
-        ORACLE("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:", "jdbc:oracle:thin:@hostname:portNumber:databaseName"),
-        DB2("COM.ibm.db2.jdbc.net.DB2Driver", "jdbc:db2:", "jdbc:db2:hostname:portNumber/databaseName"),
-        SYBASE("com.sybase.jdbc.SybDriver", "jdbc:sybase:", "jdbc:sybase:Tds:hostname:portNumber/databaseName"),
-        SQLITE("org.sqlite.JDBC", "jdbc:sqlite:", "jdbc:sqlite:my_database.sqlite"),
-        DERBY_LOCAL("", "jdbc:derby:", "jdbc:derby:myDatabase;create=true"),
-        DERBY_NETWORK("", "jdbc:derby://", "jdbc:derby://hostname:portNumber/myDatabase");
+        MYSQL("com.mysql.jdbc.Driver", "jdbc:mysql:", "jdbc:mysql://hostname:portNumber/databaseName", "SELECT 1"),
+        MSSQL("com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver:", "jdbc:sqlserver://serverName\\instanceName:portNumber", "SELECT 1"),
+        POSTGRESQL("org.postgresql.Driver", "jdbc:postgresql:", "jdbc:postgresql://hostname:portNumber/databaseName", "SELECT 1"),
+        ORACLE("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:", "jdbc:oracle:thin:@hostname:portNumber:databaseName", "SELECT 1"),
+        DB2("COM.ibm.db2.jdbc.net.DB2Driver", "jdbc:db2:", "jdbc:db2:hostname:portNumber/databaseName", "SELECT 1 FROM SYSIBM.SYSDUMMY1"),
+        SYBASE("com.sybase.jdbc.SybDriver", "jdbc:sybase:", "jdbc:sybase:Tds:hostname:portNumber/databaseName", "SELECT 1"),
+        SQLITE("org.sqlite.JDBC", "jdbc:sqlite:", "jdbc:sqlite:my_database.sqlite", "SELECT 1"),
+        DERBY_LOCAL("org.apache.derby.jdbc.EmbeddedDriver", "jdbc:derby:", "jdbc:derby:myDatabase;create=true", "VALUES 1"),
+        DERBY_NETWORK("org.apache.derby.jdbc.ClientDriver", "jdbc:derby://", "jdbc:derby://hostname:portNumber/myDatabase", "VALUES 1");
 
         private String driverClass;
+        private String validationQuery;
+
+        public String getValidationQuery() {
+            return validationQuery;
+        }
 
         public String getDriverClass() {
             return driverClass;
@@ -127,10 +146,11 @@ public class JDBCPageProvider implements PageProvider {
         private String startsWith;
         private String urlDefaultPath;
 
-        SQLType(String driverClass, String startsWith, String urlDefaultPath) {
+        SQLType(String driverClass, String startsWith, String urlDefaultPath, String validationQuery) {
             this.driverClass = driverClass;
             this.startsWith = startsWith;
             this.urlDefaultPath = urlDefaultPath;
+            this.validationQuery = validationQuery;
         }
 
         public static SQLType parse(String input) throws Exception {
@@ -167,6 +187,7 @@ public class JDBCPageProvider implements PageProvider {
     private static final String DEFAULT_SOURCE = null;
 
     public static final String PROP_DRIVER = "jdbc.driver";
+    public static final String PROP_USE_POOLING = "jdbc.poolingEnabled";
     public static final String PROP_URL = "jdbc.url";
     public static final String PROP_USER = "jdbc.user";
     public static final String PROP_PASSWORD = "jdbc.password";
@@ -177,7 +198,8 @@ public class JDBCPageProvider implements PageProvider {
     public static final String PROP_C3P0_MINPOOLSIZE = "jdbc.c3p0.minpoolsize";
     public static final String PROP_C3P0_INCREMENT = "jdbc.c3p0.increment";
     public static final String PROP_C3P0_MAXPOOLSIZE = "jdbc.c3p0.maxpoolsize";
-    public static final String PARAM_SOURCE = "jspwikisrc";
+
+    public static final String PARAM_JNDI_SOURCE = "existingDataSourceJNDILookup";
 
     private static final String COLUMN_ID = "wikiid";
     private static final String COLUMN_PAGENAME = "wikiname";
@@ -200,7 +222,7 @@ public class JDBCPageProvider implements PageProvider {
     private Integer c3p0MinPoolSize = DEFAULT_C3P0_MINPOOLSIZE;
     private Integer c3p0Increment = DEFAULT_C3P0_INCREMENT;
     private Integer c3p0MaxPoolSize = DEFAULT_C3P0_MAXPOOLSIZE;
-    private String source = DEFAULT_SOURCE;
+    private String jndiJdbcSource = DEFAULT_SOURCE;
     private DataSource ds = null;
     private Engine wikiEngine = null;
 
@@ -213,7 +235,7 @@ public class JDBCPageProvider implements PageProvider {
         // Validate all parameters
         validateParams(properties);
 
-        String sql = "select 1";
+        String sql = sqlType.getValidationQuery();
         ResultSet rs = null;
         Connection con = null;
         PreparedStatement cmd = null;
@@ -261,16 +283,52 @@ public class JDBCPageProvider implements PageProvider {
         String param;
 
         LOG.info("validateParams() START");
-        paramName = PARAM_SOURCE;
+        paramName = PARAM_JNDI_SOURCE;
         param = props.getProperty(paramName);
         if (StringUtils.isNotBlank(param)) {
             LOG.info(paramName + "=" + param);
             if (!StringUtils.isAsciiPrintable(param)) {
-                throw new NoRequiredPropertyException(paramName + " parameter is not a valid value", PARAM_SOURCE);
+                throw new NoRequiredPropertyException(paramName + " parameter is not a valid value", PARAM_JNDI_SOURCE);
             }
-            source = param;
+            jndiJdbcSource = param;
+            try {
+                Context ctx = new InitialContext();
+                ds = (DataSource) ctx.lookup("java:/comp/env/jdbc/" + jndiJdbcSource);
+                if (ds == null) {
+                    ds = (DataSource) ctx.lookup("java:" + jndiJdbcSource);
+                }
+                if (ds == null) {
+                    LOG.error("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + jndiJdbcSource + "!");
+                    throw new NoRequiredPropertyException("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + jndiJdbcSource + "!", PARAM_JNDI_SOURCE);
+                }
+                Connection con = null;
+                String driverStr = null;
+                try {
+                    con = ds.getConnection();
+                    driverStr = con.getMetaData().getDriverName();
+                    String jdbcUrl = con.getMetaData().getURL();
+                    Driver driver = DriverManager.getDriver(jdbcUrl);
+                    sqlType = SQLType.parse(driver.getClass().getCanonicalName());
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                    throw new NoRequiredPropertyException(paramName + " property is not a valid value. " + e.getMessage() + ":" + driverStr, PROP_DRIVER);
+                } finally {
+                    if (con != null) {
+                        try {
+                            con.close();
+                        } catch (SQLException ex) {
+
+                        }
+                    }
+                }
+            } catch (NamingException e) {
+                LOG.error("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + jndiJdbcSource + "!");
+                throw new NoRequiredPropertyException("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + jndiJdbcSource + "!", PARAM_JNDI_SOURCE);
+            }
+        } else {
+            jndiJdbcSource = null;
         }
-        paramName = getPropKey(PROP_DRIVER, source);
+        paramName = (PROP_DRIVER);
         param = props.getProperty(paramName);
         if (StringUtils.isNotBlank(param)) {
             LOG.info(paramName + "=" + param);
@@ -294,18 +352,11 @@ public class JDBCPageProvider implements PageProvider {
                 LOG.error("Error: unable to load driver " + param + "!", e);
                 throw new NoRequiredPropertyException("Error: unable to load driver " + param + "! " + e.getMessage(), PROP_DRIVER);
             }
-        } else {
-            try {
-                Context ctx = new InitialContext();
-                ds = (DataSource) ctx.lookup("java:/comp/env/jdbc/" + source);
-            } catch (NamingException e) {
-                LOG.error("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + source + "!");
-                throw new NoRequiredPropertyException("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + source + "!", PARAM_SOURCE);
-            }
         }
+
         if (ds == null) {
-            paramName = getPropKey(PROP_URL, source);
-            param = props.getProperty(paramName);
+
+            param = props.getProperty(PROP_URL);
             if (StringUtils.isNotBlank(param)) {
                 LOG.info(paramName + "=" + param);
                 if (!StringUtils.isAsciiPrintable(param)) {
@@ -316,9 +367,10 @@ public class JDBCPageProvider implements PageProvider {
                             + "Expected: " + sqlType.urlDefaultPath, PROP_URL);
                 }
                 dbUrl = param;
+            } else {
+                throw new NoRequiredPropertyException(paramName + " property is not a valid value", PROP_URL);
             }
-            paramName = getPropKey(PROP_USER, source);
-            param = props.getProperty(paramName);
+            param = props.getProperty(PROP_USER);
             if (StringUtils.isNotBlank(param)) {
                 LOG.info(paramName + "=" + param);
                 if (!StringUtils.isAsciiPrintable(param)) {
@@ -326,8 +378,7 @@ public class JDBCPageProvider implements PageProvider {
                 }
                 dbUser = param;
             }
-            paramName = getPropKey(PROP_PASSWORD, source);
-            param = props.getProperty(paramName);
+            param = props.getProperty(PROP_PASSWORD);
             if (StringUtils.isNotBlank(param)) {
                 LOG.info(paramName + "=" + param);
                 if (!StringUtils.isAsciiPrintable(param)) {
@@ -336,8 +387,7 @@ public class JDBCPageProvider implements PageProvider {
                 dbPassword = param;
             }
         }
-        paramName = getPropKey(PROP_TABLENAME, source);
-        param = props.getProperty(paramName);
+        param = props.getProperty(PROP_TABLENAME, DEFAULT_TABLENAME);
         if (StringUtils.isNotBlank(param)) {
             LOG.info(paramName + "=" + param);
             if (!StringUtils.isAsciiPrintable(param)) {
@@ -345,8 +395,8 @@ public class JDBCPageProvider implements PageProvider {
             }
             tableName = param;
         }
-        paramName = getPropKey(PROP_MAXRESULTS, source);
-        param = props.getProperty(paramName);
+
+        param = props.getProperty(PROP_MAXRESULTS, DEFAULT_MAXRESULTS + "");
         if (StringUtils.isNotBlank(param)) {
             LOG.info(paramName + "=" + param);
             if (!StringUtils.isNumeric(param)) {
@@ -354,28 +404,21 @@ public class JDBCPageProvider implements PageProvider {
             }
             maxResults = Integer.parseInt(param);
         }
-        paramName = getPropKey(PROP_VERSIONING, source);
-        param = props.getProperty(paramName);
+        param = props.getProperty(PROP_VERSIONING);
         if (StringUtils.isNotBlank(param)) {
             LOG.info(paramName + "=" + param);
             try {
-                Boolean paramValue = Boolean.parseBoolean(param);
+                Boolean paramValue = "true".equalsIgnoreCase(param);
                 isVersioned = paramValue;
             } catch (Exception e) {
                 throw new NoRequiredPropertyException(paramName + " parameter is not true or false", PROP_MAXRESULTS);
             }
         }
-        paramName = getPropKey(PROP_C3P0, source);
-        param = props.getProperty(paramName);
-        if (StringUtils.isNotBlank(param)) {
-            try {
-                Boolean paramValue = Boolean.parseBoolean(param);
-                c3p0 = paramValue;
-            } catch (Exception e) {
-                throw new NoRequiredPropertyException(paramName + " parameter is not true or false", PROP_C3P0);
-            }
 
-            paramName = getPropKey(PROP_C3P0_MINPOOLSIZE, source);
+        param = props.getProperty(PROP_USE_POOLING);
+        if ("true".equalsIgnoreCase(param)) {
+            c3p0 = true;
+            paramName = props.getProperty(PROP_C3P0_MINPOOLSIZE, DEFAULT_C3P0_MINPOOLSIZE + "");
             param = props.getProperty(paramName);
             if (StringUtils.isNotBlank(param)) {
                 LOG.info(paramName + "=" + param);
@@ -385,8 +428,7 @@ public class JDBCPageProvider implements PageProvider {
                 c3p0MinPoolSize = Integer.parseInt(param);
             }
 
-            paramName = getPropKey(PROP_C3P0_INCREMENT, source);
-            param = props.getProperty(paramName);
+            param = props.getProperty(PROP_C3P0_INCREMENT, DEFAULT_C3P0_INCREMENT + "");
             if (StringUtils.isNotBlank(param)) {
                 LOG.info(paramName + "=" + param);
                 if (!StringUtils.isNumeric(param)) {
@@ -395,8 +437,7 @@ public class JDBCPageProvider implements PageProvider {
                 c3p0Increment = Integer.parseInt(param);
             }
 
-            paramName = getPropKey(PROP_C3P0_MAXPOOLSIZE, source);
-            param = props.getProperty(paramName);
+            param = props.getProperty(PROP_C3P0_MAXPOOLSIZE, DEFAULT_C3P0_MAXPOOLSIZE + "");
             if (StringUtils.isNotBlank(param)) {
                 LOG.info(paramName + "=" + param);
                 if (!StringUtils.isNumeric(param)) {
@@ -426,44 +467,42 @@ public class JDBCPageProvider implements PageProvider {
     private String addLimits(SQLType sqlType, String sql, Integer maxResults) {
         String result = sql;
         if (StringUtils.isNotBlank(sql)) {
-            result = sql.trim();
-            if (result.endsWith(";")) {
-                result = result.substring(result.length() - 1);
-            }
+            result = sql.trim() + " ";
+
             switch (sqlType) {
                 case MSSQL:
                     if (!result.toLowerCase().contains(" top")) {
                         result = sql.replace("select", "select top " + maxResults);
-                        result += ";";
+
                     }
                     break;
                 case MYSQL:
                     if (!result.toLowerCase().contains(" limit ")) {
-                        result = result + " limit " + maxResults + ";";
+                        result = result + " limit " + maxResults;
                     }
                     break;
                 case ORACLE:
                     if (!result.toLowerCase().contains("rownum")) {
-                        result = "select * from ( " + result + " ) where ROWNUM <= " + maxResults + ";";
+                        result = "select * from ( " + result + " ) where ROWNUM <= " + maxResults;
                     }
                     break;
                 case SQLITE:
                 case POSTGRESQL:
                     if (!result.toLowerCase().contains(" limit ")) {
-                        result = result + " limit " + maxResults + ";";
+                        result = result + " limit " + maxResults;
                     }
                     break;
                 case DERBY_LOCAL:
                 case DERBY_NETWORK:
                 case DB2:
                     if (!result.toLowerCase().contains(" fetch")) {
-                        result = result + " FETCH FIRST " + maxResults + " ROWS ONLY;";
+                        result = result + " FETCH FIRST " + maxResults + " ROWS ONLY";
                     }
                     break;
                 case SYBASE:
                     if (!result.toLowerCase().contains(" top")) {
                         result = result.replace("select", "select top " + maxResults);
-                        result += ";";
+
                     }
                     break;
             }
@@ -473,7 +512,7 @@ public class JDBCPageProvider implements PageProvider {
 
     private String getPropKey(String currentKey, String source) {
         String result = currentKey;
-        if (StringUtils.isNotBlank(source)) {
+        if (source != null && StringUtils.isNotBlank(source)) {
             result += "." + source;
         }
         return result;
@@ -512,7 +551,7 @@ public class JDBCPageProvider implements PageProvider {
         return "JDBCPageProvider";
     }
 
-    private int findLatestVersion(String page) {
+    protected int findLatestVersion(String page) {
         int version = -1;
         if (!isVersioned) {
             return version;
@@ -570,7 +609,7 @@ public class JDBCPageProvider implements PageProvider {
     public void putPageText(Page page, String text) throws ProviderException {
         Connection conn = null;
         PreparedStatement cmd = null;
-
+        String sql="TBD";
         try {
             conn = getConnection();
             String changenote = "new page";
@@ -582,21 +621,23 @@ public class JDBCPageProvider implements PageProvider {
                 if (pageExists(page.getName(), latest)) {
                     latest++;
                 }
-                String sql = "insert into " + getTableName() + " ("
+                sql = "insert into " + getTableName() + " ("
                         + COLUMN_PAGENAME + ","
                         + COLUMN_VERSION + ","
                         + COLUMN_TEXT + ","
                         + COLUMN_AUTHOR + ","
                         + COLUMN_CHANGENOTE + ","
-                        + COLUMN_STATUS + ")"
-                        + " values (?,?,?,?,?,?)";
+                        + COLUMN_STATUS + ","
+                        + COLUMN_LASTMODIFIED + ")"
+                        + " values (?,?,?,?,?,?,?)";
                 String[] args = new String[]{
-                    page.getName(), 
+                    page.getName(),
                     String.valueOf(latest),
                     text,
-                    page.getAuthor(), 
-                    changenote, 
-                    PageStatus.ACTIVE.dbValue};
+                    page.getAuthor(),
+                    changenote,
+                    PageStatus.ACTIVE.dbValue,
+                    System.currentTimeMillis() + ""};
                 cmd = conn.prepareStatement(sql);
                 for (int i = 0; i < args.length; i++) {
                     cmd.setString(i + 1, args[i]);
@@ -605,19 +646,21 @@ public class JDBCPageProvider implements PageProvider {
             } else {
                 int latest = -1;
                 if (pageExists(page.getName(), latest)) {
-                    String sql = "update " + getTableName() + " set "
+                    sql = "update " + getTableName() + " set "
                             + COLUMN_TEXT + "=?, "
                             + COLUMN_AUTHOR + "=?, "
                             + COLUMN_CHANGENOTE + "=?, "
-                            + COLUMN_STATUS + "=? "
+                            + COLUMN_STATUS + "=?, "
+                            + COLUMN_LASTMODIFIED + "=? "
                             + " where "
                             + COLUMN_PAGENAME + "=? AND "
                             + COLUMN_VERSION + "=?";
                     String[] args = new String[]{
-                        text, 
-                        page.getAuthor(), 
-                        changenote, 
-                        PageStatus.ACTIVE.dbValue, 
+                        text,
+                        page.getAuthor(),
+                        changenote,
+                        PageStatus.ACTIVE.dbValue,
+                        System.currentTimeMillis() + "",
                         page.getName(),
                         "-1"};
                     cmd = conn.prepareStatement(sql);
@@ -626,21 +669,24 @@ public class JDBCPageProvider implements PageProvider {
                     }
                     int result = cmd.executeUpdate();
                 } else {
-                    String sql = "insert into " + getTableName() + " ("
+                    sql = "insert into " + getTableName() + " ("
                             + COLUMN_PAGENAME + ","
                             + COLUMN_VERSION + ","
                             + COLUMN_TEXT + ","
                             + COLUMN_AUTHOR + ","
                             + COLUMN_CHANGENOTE + ","
-                            + COLUMN_STATUS + ") "
-                            + " values (?,?,?,?,?,?)";
+                            + COLUMN_STATUS + ","
+                            + COLUMN_LASTMODIFIED
+                            + ") "
+                            + " values (?,?,?,?,?,?,?)";
                     String[] args = new String[]{
                         page.getName(),
                         String.valueOf(latest),
-                        text, 
+                        text,
                         page.getAuthor(),
-                        changenote, 
-                        PageStatus.ACTIVE.dbValue};
+                        changenote,
+                        PageStatus.ACTIVE.dbValue,
+                        System.currentTimeMillis() + ""};
                     cmd = conn.prepareStatement(sql);
                     for (int i = 0; i < args.length; i++) {
                         cmd.setString(i + 1, args[i]);
@@ -649,6 +695,7 @@ public class JDBCPageProvider implements PageProvider {
                 }
             }
         } catch (Exception e) {
+            LOG.error(e.getMessage() + " " + sql);
             throw new ProviderException(e.getMessage());
         } finally {
 
@@ -689,13 +736,13 @@ public class JDBCPageProvider implements PageProvider {
 
         try {
             conn = getConnection();
-            String sql = "select count(1) from " + getTableName() + 
-                    " where " + 
-                    COLUMN_PAGENAME + " = ? and " + 
-                    COLUMN_VERSION + " = ? and " + 
-                    COLUMN_STATUS + " != ? ";
+            String sql = "select count(1) from " + getTableName()
+                    + " where "
+                    + COLUMN_PAGENAME + " = ? and "
+                    + COLUMN_VERSION + " = ? and "
+                    + COLUMN_STATUS + " != ? ";
             String[] args = new String[]{
-                page, 
+                page,
                 String.valueOf(version),
                 PageStatus.DELETED.dbValue};
             cmd = conn.prepareStatement(sql);
@@ -749,8 +796,8 @@ public class JDBCPageProvider implements PageProvider {
             conn = getConnection();
             String sql = "select * from " + getTableName() + " where "
                     + COLUMN_PAGENAME + " = ? and "
-                    + COLUMN_VERSION + " = ? and " + 
-                    COLUMN_STATUS + " != ? ";
+                    + COLUMN_VERSION + " = ? and "
+                    + COLUMN_STATUS + " != ? ";
             String[] args = new String[]{page, String.valueOf(version), PageStatus.DELETED.dbValue};
             cmd = conn.prepareStatement(sql);
             for (int i = 0; i < args.length; i++) {
@@ -763,8 +810,8 @@ public class JDBCPageProvider implements PageProvider {
                 wikiPage.setVersion(version);
                 wikiPage.setSize(rs.getString(COLUMN_TEXT).length());
                 wikiPage.setAttribute(WikiPage.CHANGENOTE, rs.getString(COLUMN_CHANGENOTE));
-                wikiPage.setLastModified(rs.getDate(COLUMN_LASTMODIFIED));
-                
+                wikiPage.setLastModified(new Date(rs.getLong(COLUMN_LASTMODIFIED)));
+
                 return wikiPage;
             }
         } catch (Exception ex) {
@@ -810,10 +857,10 @@ public class JDBCPageProvider implements PageProvider {
             conn = getConnection();
 
             if (query.length > 0 && StringUtils.isNotBlank(query[0].word)) {
-                String sql = "select distinct " + COLUMN_PAGENAME + " from " + getTableName() +
-                        " where " + 
-                        COLUMN_TEXT + " like ? and " +
-                        COLUMN_STATUS + " != ?";
+                String sql = "select distinct " + COLUMN_PAGENAME + " from " + getTableName()
+                        + " where "
+                        + COLUMN_TEXT + " like ? and "
+                        + COLUMN_STATUS + " != ?";
                 sql = addLimits(sqlType, sql, maxResults);
                 String[] args = new String[]{"%" + query[0].word + "%", PageStatus.DELETED.dbValue};
                 cmd = conn.prepareStatement(sql);
@@ -881,12 +928,11 @@ public class JDBCPageProvider implements PageProvider {
         Connection conn = null;
         PreparedStatement cmd = null;
         ResultSet rs = null;
-
+        String sql = "select distinct " + COLUMN_PAGENAME + " from " + getTableName()
+                + " where " + COLUMN_STATUS + " != ?";
         try {
             conn = getConnection();
 
-            String sql = "select distinct " + COLUMN_PAGENAME + " from " + getTableName() + 
-                    " where " + COLUMN_STATUS + " != ?";
             sql = addLimits(sqlType, sql, maxResults);
             String[] args = new String[]{PageStatus.DELETED.dbValue};
             cmd = conn.prepareStatement(sql);
@@ -900,7 +946,7 @@ public class JDBCPageProvider implements PageProvider {
                 pages.add(wikiPage);
             }
         } catch (Exception ex) {
-            LOG.error(ex.getMessage(), ex);
+            LOG.error(ex.getMessage() + " " + sql, ex);
         } finally {
             if (rs != null) {
                 try {
@@ -937,14 +983,13 @@ public class JDBCPageProvider implements PageProvider {
         Connection conn = null;
         PreparedStatement cmd = null;
         ResultSet rs = null;
-
+        String sql = "select distinct " + COLUMN_PAGENAME + " from " + getTableName()
+                + " where " + COLUMN_LASTMODIFIED + " >= ? and " + COLUMN_STATUS + " != ?";
+        sql = addLimits(sqlType, sql, maxResults);
         try {
             conn = getConnection();
 
-            String sql = "select distinct " + COLUMN_PAGENAME + " from " + getTableName() + 
-                    " where " + COLUMN_LASTMODIFIED + " >= ? and " + COLUMN_STATUS + " != ?";
-            sql = addLimits(sqlType, sql, maxResults);
-            String[] args = new String[]{date.getTime()+"", PageStatus.DELETED.dbValue};
+            String[] args = new String[]{date.getTime() + "", PageStatus.DELETED.dbValue};
             cmd = conn.prepareStatement(sql);
             for (int i = 0; i < args.length; i++) {
                 cmd.setString(i + 1, args[i]);
@@ -998,8 +1043,8 @@ public class JDBCPageProvider implements PageProvider {
         try {
             conn = getConnection();
 
-            String sql = "select count(distinct " + COLUMN_PAGENAME + ") from " + getTableName() + 
-                    " where " + COLUMN_STATUS + " != ?";
+            String sql = "select count(distinct " + COLUMN_PAGENAME + ") from " + getTableName()
+                    + " where " + COLUMN_STATUS + " != ?";
             LOG.debug("executeQuery() sql=" + sql);
             String[] args = new String[]{PageStatus.DELETED.dbValue};
             cmd = conn.prepareStatement(sql);
@@ -1126,9 +1171,9 @@ public class JDBCPageProvider implements PageProvider {
         try {
             conn = getConnection();
 
-            String sql = "update " + getTableName() + " set " + COLUMN_STATUS + " = ? where " +
-                    COLUMN_PAGENAME + " = ? and " + 
-                    COLUMN_VERSION + " = ?";
+            String sql = "update " + getTableName() + " set " + COLUMN_STATUS + " = ? where "
+                    + COLUMN_PAGENAME + " = ? and "
+                    + COLUMN_VERSION + " = ?";
             String[] args = new String[]{PageStatus.DELETED.dbValue, pageName, String.valueOf(version)};
             cmd = conn.prepareStatement(sql);
             for (int i = 0; i < args.length; i++) {
@@ -1167,8 +1212,8 @@ public class JDBCPageProvider implements PageProvider {
         try {
             conn = getConnection();
 
-            String sql = "update " + getTableName() + " set " + COLUMN_STATUS + " = ? where " + 
-                    COLUMN_PAGENAME + " = ?";
+            String sql = "update " + getTableName() + " set " + COLUMN_STATUS + " = ? where "
+                    + COLUMN_PAGENAME + " = ?";
             String[] args = new String[]{PageStatus.DELETED.dbValue, pageName};
             cmd = conn.prepareStatement(sql);
             for (int i = 0; i < args.length; i++) {
@@ -1209,9 +1254,9 @@ public class JDBCPageProvider implements PageProvider {
         PreparedStatement cmd = null;
         try {
             conn = getConnection();
-            String sql = "update " + getTableName() + " set " +
-                    COLUMN_PAGENAME + " = ? where " + 
-                    COLUMN_PAGENAME + " = ?";
+            String sql = "update " + getTableName() + " set "
+                    + COLUMN_PAGENAME + " = ? where "
+                    + COLUMN_PAGENAME + " = ?";
             String[] args = new String[]{to, from};
             cmd = conn.prepareStatement(sql);
             for (int i = 0; i < args.length; i++) {
