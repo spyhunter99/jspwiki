@@ -39,7 +39,6 @@ public class HitCountPlugin implements Plugin {
         try {
             Page currentPage = wikiContext.getPage();
             log.info("currentPage=" + currentPage);
-            Object pageHitCountAtt = currentPage.getAttribute(KEY_PAGEHITCOUNT);
             if (hits.containsKey(currentPage.getName())) {
                 pageHitCount = hits.get(currentPage.getName()).incrementAndGet();
             } else {
