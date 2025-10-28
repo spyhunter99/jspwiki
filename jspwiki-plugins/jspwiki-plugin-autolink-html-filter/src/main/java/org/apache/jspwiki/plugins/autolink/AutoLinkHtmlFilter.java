@@ -27,6 +27,13 @@ import org.apache.wiki.api.core.Context;
 import org.apache.wiki.api.exceptions.FilterException;
 import org.apache.wiki.api.filters.BasePageFilter;
 
+/**
+ * resolves typed URLs and replaces them with a href links
+ * 
+ * no longer needed as jspwiki does this elsewhere
+ * 
+ */
+@Deprecated
 public class AutoLinkHtmlFilter extends BasePageFilter {
 
 	private static final Logger log = Logger.getLogger(AutoLinkHtmlFilter.class);

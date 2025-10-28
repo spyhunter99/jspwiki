@@ -31,6 +31,16 @@ import org.apache.wiki.api.core.Engine;
 import org.apache.wiki.api.exceptions.FilterException;
 import org.apache.wiki.api.filters.BasePageFilter;
 
+/**
+ * replaces text emoji shortcuts such as :::insidepre:::
+ * with img tags pointing towards at .emoji-cheat-sheet.com.
+ * As such, requires internet access.
+ * 
+ * this really doesn't make sense anymore as all emojis are available
+ * via unicode characters
+ * 
+ */
+@Deprecated
 public class EmojiFilter extends BasePageFilter {
 
 	private static final Logger log = Logger.getLogger(EmojiFilter.class);
