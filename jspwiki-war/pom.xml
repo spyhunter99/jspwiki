@@ -128,11 +128,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <version>${project.version}</version>
-            <artifactId>jspwiki-plugin-password</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <version>${project.version}</version>
             <artifactId>jspwiki-plugin-plugin-list</artifactId>
         </dependency>
         <dependency>
