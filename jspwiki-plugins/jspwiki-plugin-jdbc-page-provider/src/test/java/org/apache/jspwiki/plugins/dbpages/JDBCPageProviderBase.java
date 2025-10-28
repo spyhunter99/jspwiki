@@ -46,7 +46,7 @@ public abstract class JDBCPageProviderBase {
 
     public abstract boolean withVersionSupport();
 
-    public abstract JDBCPageProvider.SQLType getType();
+    public abstract SQLType getType();
 
     @BeforeEach
     void setupProvider() throws Exception {
@@ -54,9 +54,9 @@ public abstract class JDBCPageProviderBase {
         Properties props = TestEngine.getTestProperties();
         props.setProperty(JDBCPageProvider.PROP_DRIVER, getType().getDriverClass());
         if (!withJndiLookup()) {
-            if (getType() == JDBCPageProvider.SQLType.SQLITE) {
+            if (getType() == SQLType.SQLITE) {
                 props.setProperty(JDBCPageProvider.PROP_URL, "jdbc:sqlite:./target/" + this.getClass().getSimpleName() + ".db");
-            } else if (getType() == JDBCPageProvider.SQLType.DERBY_LOCAL) {
+            } else if (getType() == SQLType.DERBY_LOCAL) {
                 File target = new File("./target/derby" + this.getClass().getSimpleName());
                 String path = target.getCanonicalPath();
                 path = path.replace("\\", "/");
@@ -84,7 +84,7 @@ public abstract class JDBCPageProviderBase {
 
     static Stream<Object> getTestParameters() {
         return Stream.of(
-                new Object[]{true, true, JDBCPageProvider.SQLType.SQLITE}
+                new Object[]{true, true, SQLType.SQLITE}
         );
     }
 
@@ -233,11 +233,11 @@ public abstract class JDBCPageProviderBase {
     @Test
     void testAddLimitsForDifferentDialects() throws Exception {
         var method = JDBCPageProvider.class.getDeclaredMethod("addLimits",
-                Enum.valueOf(JDBCPageProvider.SQLType.class, "SQLITE").getClass(),
+                Enum.valueOf(SQLType.class, "SQLITE").getClass(),
                 String.class, Integer.class);
         method.setAccessible(true);
 
-        String sql = (String) method.invoke(provider, JDBCPageProvider.SQLType.SQLITE, "SELECT * FROM pages", 5);
+        String sql = (String) method.invoke(provider, SQLType.SQLITE, "SELECT * FROM pages", 5);
         assertTrue(sql.toLowerCase().contains("limit"));
     }
 

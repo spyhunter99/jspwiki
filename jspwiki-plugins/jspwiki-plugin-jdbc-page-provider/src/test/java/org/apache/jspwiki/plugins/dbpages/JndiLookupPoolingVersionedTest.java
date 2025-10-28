@@ -35,7 +35,7 @@ public class JndiLookupPoolingVersionedTest extends JDBCPageProviderBase {
         System.setProperty(Context.INITIAL_CONTEXT_FACTORY, InitialContextFactoryForTest.class.getName());
         cpds = new ComboPooledDataSource();
 
-        cpds.setDriverClass(JDBCPageProvider.SQLType.SQLITE.getDriverClass());
+        cpds.setDriverClass(SQLType.SQLITE.getDriverClass());
 
         cpds.setJdbcUrl("jdbc:sqlite:./target/" + JndiLookupPoolingVersionedTest.class.getSimpleName() + ".db");
         cpds.setMinPoolSize(0);
@@ -67,8 +67,8 @@ public class JndiLookupPoolingVersionedTest extends JDBCPageProviderBase {
     }
 
     @Override
-    public JDBCPageProvider.SQLType getType() {
-        return JDBCPageProvider.SQLType.SQLITE;
+    public SQLType getType() {
+        return SQLType.SQLITE;
     }
 
 }

@@ -114,54 +114,7 @@ public class JDBCPageProvider implements PageProvider {
 
     }
 
-    public enum SQLType {
-        MYSQL("com.mysql.jdbc.Driver", "jdbc:mysql:", "jdbc:mysql://hostname:portNumber/databaseName", "SELECT 1"),
-        MSSQL("com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver:", "jdbc:sqlserver://serverName\\instanceName:portNumber", "SELECT 1"),
-        POSTGRESQL("org.postgresql.Driver", "jdbc:postgresql:", "jdbc:postgresql://hostname:portNumber/databaseName", "SELECT 1"),
-        ORACLE("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:", "jdbc:oracle:thin:@hostname:portNumber:databaseName", "SELECT 1"),
-        DB2("COM.ibm.db2.jdbc.net.DB2Driver", "jdbc:db2:", "jdbc:db2:hostname:portNumber/databaseName", "SELECT 1 FROM SYSIBM.SYSDUMMY1"),
-        SYBASE("com.sybase.jdbc.SybDriver", "jdbc:sybase:", "jdbc:sybase:Tds:hostname:portNumber/databaseName", "SELECT 1"),
-        SQLITE("org.sqlite.JDBC", "jdbc:sqlite:", "jdbc:sqlite:my_database.sqlite", "SELECT 1"),
-        DERBY_LOCAL("org.apache.derby.jdbc.EmbeddedDriver", "jdbc:derby:", "jdbc:derby:myDatabase;create=true", "VALUES 1"),
-        DERBY_NETWORK("org.apache.derby.jdbc.ClientDriver", "jdbc:derby://", "jdbc:derby://hostname:portNumber/myDatabase", "VALUES 1");
-
-        private String driverClass;
-        private String validationQuery;
-
-        public String getValidationQuery() {
-            return validationQuery;
-        }
-
-        public String getDriverClass() {
-            return driverClass;
-        }
-
-        public String getStartsWith() {
-            return startsWith;
-        }
-
-        public String getUrlDefaultPath() {
-            return urlDefaultPath;
-        }
-        private String startsWith;
-        private String urlDefaultPath;
-
-        SQLType(String driverClass, String startsWith, String urlDefaultPath, String validationQuery) {
-            this.driverClass = driverClass;
-            this.startsWith = startsWith;
-            this.urlDefaultPath = urlDefaultPath;
-            this.validationQuery = validationQuery;
-        }
-
-        public static SQLType parse(String input) throws Exception {
-            for (SQLType type : SQLType.values()) {
-                if (type.name().equalsIgnoreCase(input) || type.driverClass.equalsIgnoreCase(input)) {
-                    return type;
-                }
-            }
-            throw new Exception("Could not find SQLType of value: " + input);
-        }
-    }
+    
 
     public enum PageStatus {
         ACTIVE("AC"), DELETED("DL");
@@ -362,9 +315,9 @@ public class JDBCPageProvider implements PageProvider {
                 if (!StringUtils.isAsciiPrintable(param)) {
                     throw new NoRequiredPropertyException(paramName + " property is not a valid value", PROP_URL);
                 }
-                if (!param.trim().startsWith(sqlType.startsWith)) {
+                if (!param.trim().startsWith(sqlType.getStartsWith())) {
                     throw new NoRequiredPropertyException("Error: " + paramName + " property has value " + param + ". "
-                            + "Expected: " + sqlType.urlDefaultPath, PROP_URL);
+                            + "Expected: " + sqlType.getUrlDefaultPath(), PROP_URL);
                 }
                 dbUrl = param;
             } else {
@@ -451,7 +404,7 @@ public class JDBCPageProvider implements PageProvider {
     protected void initialiseConnectionPool() throws SQLException {
         cpds = new ComboPooledDataSource();
         try {
-            cpds.setDriverClass(sqlType.driverClass);
+            cpds.setDriverClass(sqlType.getDriverClass());
         } catch (Exception e) {
             throw new SQLException(e);
         }

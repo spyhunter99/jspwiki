@@ -41,7 +41,7 @@ public class SqlitePoolingVersionTest extends JDBCPageProviderBase {
     }
 
     @Override
-    public JDBCPageProvider.SQLType getType() {
-        return JDBCPageProvider.SQLType.SQLITE;
+    public SQLType getType() {
+        return SQLType.SQLITE;
     }
 }

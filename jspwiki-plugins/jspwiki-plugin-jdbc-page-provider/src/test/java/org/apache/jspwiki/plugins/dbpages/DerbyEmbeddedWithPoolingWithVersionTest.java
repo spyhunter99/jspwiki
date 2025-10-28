@@ -32,8 +32,8 @@ public class DerbyEmbeddedWithPoolingWithVersionTest extends JDBCPageProviderBas
     }
 
     @Override
-    public JDBCPageProvider.SQLType getType() {
-        return JDBCPageProvider.SQLType.DERBY_LOCAL;
+    public SQLType getType() {
+        return SQLType.DERBY_LOCAL;
     }
 
 }
