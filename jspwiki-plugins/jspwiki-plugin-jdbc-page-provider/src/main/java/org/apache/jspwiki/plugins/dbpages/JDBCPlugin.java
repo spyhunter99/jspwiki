@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jspwiki.plugins.dbquery;
+package org.apache.jspwiki.plugins.dbpages;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -45,33 +45,6 @@ public class JDBCPlugin implements Plugin {
 
     private final Logger log = Logger.getLogger(JDBCPlugin.class);
 
-    public enum SQLType {
-        MYSQL("com.mysql.jdbc.Driver", "jdbc:mysql:", "jdbc:mysql://hostname:portNumber/databaseName"),
-        MSSQL("com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver:", "jdbc:sqlserver://serverName\\instanceName:portNumber"),
-        POSTGRESQL("org.postgresql.Driver", "jdbc:postgresql:", "jdbc:postgresql://hostname:portNumber/databaseName"),
-        ORACLE("oracle.jdbc.driver.OracleDriver", "jdbc:oracle:", "jdbc:oracle:thin:@hostname:portNumber:databaseName"),
-        DB2("COM.ibm.db2.jdbc.net.DB2Driver", "jdbc:db2:", "jdbc:db2:hostname:portNumber/databaseName"),
-        SYBASE("com.sybase.jdbc.SybDriver", "jdbc:sybase:", "jdbc:sybase:Tds:hostname:portNumber/databaseName");
-
-        private String driverClass;
-        private String startsWith;
-        private String urlDefaultPath;
-
-        SQLType(String driverClass, String startsWith, String urlDefaultPath) {
-            this.driverClass = driverClass;
-            this.startsWith = startsWith;
-            this.urlDefaultPath = urlDefaultPath;
-        }
-
-        public static SQLType parse(String input) throws Exception {
-            for (SQLType type : SQLType.values()) {
-                if (type.name().equalsIgnoreCase(input) || type.driverClass.equalsIgnoreCase(input)) {
-                    return type;
-                }
-            }
-            throw new Exception("Could not find SQLType of value: " + input);
-        }
-    }
 
     public static final SQLType DEFAULT_TYPE = SQLType.MYSQL;
     public static final String DEFAULT_URL = "";
@@ -228,9 +201,9 @@ public class JDBCPlugin implements Plugin {
                 if (!StringUtils.isAsciiPrintable(param)) {
                     throw new PluginException(paramName + " property is not a valid value");
                 }
-                if (!param.trim().startsWith(sqlType.startsWith)) {
+                if (!param.trim().startsWith(sqlType.getStartsWith())) {
                     throw new PluginException("Error: " + paramName + " property has value " + param + ". "
-                            + "Expected: " + sqlType.urlDefaultPath);
+                            + "Expected: " + sqlType.getUrlDefaultPath());
                 }
                 dbUrl = param;
             }

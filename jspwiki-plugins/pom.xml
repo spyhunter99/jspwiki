@@ -33,8 +33,6 @@
  
 
     <modules>
-        <module>jspwiki-plugin-autolink-html-filter</module>
-        <module>jspwiki-plugin-emoji-filter</module>
         <module>jspwiki-plugin-encrypted-page-provider</module>
         <module>jspwiki-plugin-google-maps</module>
         <module>jspwiki-plugin-hit-count</module>
