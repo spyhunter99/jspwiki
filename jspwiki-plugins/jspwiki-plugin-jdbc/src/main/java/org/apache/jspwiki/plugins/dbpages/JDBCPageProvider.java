@@ -42,6 +42,9 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
+import static org.apache.jspwiki.plugins.dbpages.Props.PROP_PASSWORD;
+import static org.apache.jspwiki.plugins.dbpages.Props.PROP_URL;
+import static org.apache.jspwiki.plugins.dbpages.Props.PROP_USER;
 import org.apache.wiki.api.core.Engine;
 import org.apache.wiki.api.core.Page;
 import org.apache.wiki.api.providers.PageProvider;
@@ -114,8 +117,6 @@ public class JDBCPageProvider implements PageProvider {
 
     }
 
-    
-
     public enum PageStatus {
         ACTIVE("AC"), DELETED("DL");
 
@@ -127,10 +128,7 @@ public class JDBCPageProvider implements PageProvider {
     }
 
     private static final SQLType DEFAULT_TYPE = SQLType.SQLITE;
-    private static final String DEFAULT_URL = "";
     private static final String DEFAULT_USER = "";
-    private static final String DEFAULT_PASSWORD = "";
-    private static final Integer DEFAULT_MAXRESULTS = 500;
     private static final String DEFAULT_TABLENAME = "jspwiki";
     private static final Boolean DEFAULT_VERSIONING = true;
     private static final Boolean DEFAULT_C3P0 = false;
@@ -139,20 +137,12 @@ public class JDBCPageProvider implements PageProvider {
     private static final Integer DEFAULT_C3P0_MAXPOOLSIZE = 40;
     private static final String DEFAULT_SOURCE = null;
 
-    public static final String PROP_DRIVER = "jdbc.driver";
     public static final String PROP_USE_POOLING = "jdbc.poolingEnabled";
-    public static final String PROP_URL = "jdbc.url";
-    public static final String PROP_USER = "jdbc.user";
-    public static final String PROP_PASSWORD = "jdbc.password";
     public static final String PROP_TABLENAME = "jdbc.tablename";
-    public static final String PROP_MAXRESULTS = "jdbc.maxresults";
     public static final String PROP_VERSIONING = "jdbc.versioning";
-    public static final String PROP_C3P0 = "jdbc.c3p0";
     public static final String PROP_C3P0_MINPOOLSIZE = "jdbc.c3p0.minpoolsize";
     public static final String PROP_C3P0_INCREMENT = "jdbc.c3p0.increment";
     public static final String PROP_C3P0_MAXPOOLSIZE = "jdbc.c3p0.maxpoolsize";
-
-    public static final String PARAM_JNDI_SOURCE = "existingDataSourceJNDILookup";
 
     private static final String COLUMN_ID = "wikiid";
     private static final String COLUMN_PAGENAME = "wikiname";
@@ -165,10 +155,10 @@ public class JDBCPageProvider implements PageProvider {
 
     private ComboPooledDataSource cpds = null;
     private SQLType sqlType = DEFAULT_TYPE;
-    private String dbUrl = DEFAULT_URL;
+    private String dbUrl = Props.DEFAULT_URL;
     private String dbUser = DEFAULT_USER;
-    private String dbPassword = DEFAULT_PASSWORD;
-    private Integer maxResults = DEFAULT_MAXRESULTS;
+    private String dbPassword = Props.DEFAULT_PASSWORD;
+    private Integer maxResults = Props.DEFAULT_MAXRESULTS;
     private String tableName = DEFAULT_TABLENAME;
     private Boolean isVersioned = DEFAULT_VERSIONING;
     private Boolean c3p0 = DEFAULT_C3P0;
@@ -236,12 +226,12 @@ public class JDBCPageProvider implements PageProvider {
         String param;
 
         LOG.info("validateParams() START");
-        paramName = PARAM_JNDI_SOURCE;
+        paramName = Props.PARAM_JNDI_SOURCE;
         param = props.getProperty(paramName);
         if (StringUtils.isNotBlank(param)) {
             LOG.info(paramName + "=" + param);
             if (!StringUtils.isAsciiPrintable(param)) {
-                throw new NoRequiredPropertyException(paramName + " parameter is not a valid value", PARAM_JNDI_SOURCE);
+                throw new NoRequiredPropertyException(paramName + " parameter is not a valid value", Props.PARAM_JNDI_SOURCE);
             }
             jndiJdbcSource = param;
             try {
@@ -252,7 +242,7 @@ public class JDBCPageProvider implements PageProvider {
                 }
                 if (ds == null) {
                     LOG.error("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + jndiJdbcSource + "!");
-                    throw new NoRequiredPropertyException("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + jndiJdbcSource + "!", PARAM_JNDI_SOURCE);
+                    throw new NoRequiredPropertyException("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + jndiJdbcSource + "!", Props.PARAM_JNDI_SOURCE);
                 }
                 Connection con = null;
                 String driverStr = null;
@@ -264,7 +254,7 @@ public class JDBCPageProvider implements PageProvider {
                     sqlType = SQLType.parse(driver.getClass().getCanonicalName());
                 } catch (Exception e) {
                     LOG.error(e.getMessage(), e);
-                    throw new NoRequiredPropertyException(paramName + " property is not a valid value. " + e.getMessage() + ":" + driverStr, PROP_DRIVER);
+                    throw new NoRequiredPropertyException(paramName + " property is not a valid value. " + e.getMessage() + ":" + driverStr, Props.PROP_DRIVER);
                 } finally {
                     if (con != null) {
                         try {
@@ -276,71 +266,74 @@ public class JDBCPageProvider implements PageProvider {
                 }
             } catch (NamingException e) {
                 LOG.error("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + jndiJdbcSource + "!");
-                throw new NoRequiredPropertyException("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + jndiJdbcSource + "!", PARAM_JNDI_SOURCE);
+                throw new NoRequiredPropertyException("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + jndiJdbcSource + "!", Props.PARAM_JNDI_SOURCE);
             }
         } else {
             jndiJdbcSource = null;
         }
-        paramName = (PROP_DRIVER);
+        paramName = (Props.PROP_DRIVER);
         param = props.getProperty(paramName);
         if (StringUtils.isNotBlank(param)) {
             LOG.info(paramName + "=" + param);
             try {
                 sqlType = SQLType.parse(param);
             } catch (Exception e) {
-                throw new NoRequiredPropertyException(paramName + " property is not a valid value. " + param, PROP_DRIVER);
+                throw new NoRequiredPropertyException(paramName + " property is not a valid value. " + param, Props.PROP_DRIVER);
             }
             try {
                 Class.forName(param).newInstance();
             } catch (ClassNotFoundException e) {
                 LOG.error("Error: unable to load driver class " + param + "!", e);
-                throw new NoRequiredPropertyException("Error: unable to load driver class " + param + "!", PROP_DRIVER);
+                throw new NoRequiredPropertyException("Error: unable to load driver class " + param + "!", Props.PROP_DRIVER);
             } catch (IllegalAccessException e) {
                 LOG.error("Error: access problem while loading " + param + "!", e);
-                throw new NoRequiredPropertyException("Error: access problem while loading " + param + "!", PROP_DRIVER);
+                throw new NoRequiredPropertyException("Error: access problem while loading " + param + "!", Props.PROP_DRIVER);
             } catch (InstantiationException e) {
                 LOG.error("Error: unable to instantiate driver " + param + "!", e);
-                throw new NoRequiredPropertyException("Error: unable to instantiate driver " + param + "!", PROP_DRIVER);
+                throw new NoRequiredPropertyException("Error: unable to instantiate driver " + param + "!", Props.PROP_DRIVER);
             } catch (Exception e) {
                 LOG.error("Error: unable to load driver " + param + "!", e);
-                throw new NoRequiredPropertyException("Error: unable to load driver " + param + "! " + e.getMessage(), PROP_DRIVER);
+                throw new NoRequiredPropertyException("Error: unable to load driver " + param + "! " + e.getMessage(), Props.PROP_DRIVER);
             }
         }
 
         if (ds == null) {
-
-            param = props.getProperty(PROP_URL);
+            paramName = PROP_URL;
+            param = props.getProperty(paramName);
             if (StringUtils.isNotBlank(param)) {
                 LOG.info(paramName + "=" + param);
                 if (!StringUtils.isAsciiPrintable(param)) {
-                    throw new NoRequiredPropertyException(paramName + " property is not a valid value", PROP_URL);
+                    throw new NoRequiredPropertyException(paramName + " property is not a valid value", Props.PROP_URL);
                 }
                 if (!param.trim().startsWith(sqlType.getStartsWith())) {
                     throw new NoRequiredPropertyException("Error: " + paramName + " property has value " + param + ". "
-                            + "Expected: " + sqlType.getUrlDefaultPath(), PROP_URL);
+                            + "Expected: " + sqlType.getUrlDefaultPath(), Props.PROP_URL);
                 }
                 dbUrl = param;
             } else {
-                throw new NoRequiredPropertyException(paramName + " property is not a valid value", PROP_URL);
+                throw new NoRequiredPropertyException(paramName + " property is not a valid value", Props.PROP_URL);
             }
-            param = props.getProperty(PROP_USER);
+            paramName = PROP_USER;
+            param = props.getProperty(paramName);
             if (StringUtils.isNotBlank(param)) {
                 LOG.info(paramName + "=" + param);
                 if (!StringUtils.isAsciiPrintable(param)) {
-                    throw new NoRequiredPropertyException(paramName + " property is not a valid value", PROP_USER);
+                    throw new NoRequiredPropertyException(paramName + " property is not a valid value", Props.PROP_USER);
                 }
                 dbUser = param;
             }
-            param = props.getProperty(PROP_PASSWORD);
+            paramName = PROP_PASSWORD;
+            param = props.getProperty(paramName);
             if (StringUtils.isNotBlank(param)) {
                 LOG.info(paramName + "=" + param);
                 if (!StringUtils.isAsciiPrintable(param)) {
-                    throw new NoRequiredPropertyException(paramName + " property is not a valid value", PROP_PASSWORD);
+                    throw new NoRequiredPropertyException(paramName + " property is not a valid value", Props.PROP_PASSWORD);
                 }
                 dbPassword = param;
             }
         }
-        param = props.getProperty(PROP_TABLENAME, DEFAULT_TABLENAME);
+        paramName = PROP_TABLENAME;
+        param = props.getProperty(paramName, DEFAULT_TABLENAME);
         if (StringUtils.isNotBlank(param)) {
             LOG.info(paramName + "=" + param);
             if (!StringUtils.isAsciiPrintable(param)) {
@@ -349,26 +342,27 @@ public class JDBCPageProvider implements PageProvider {
             tableName = param;
         }
 
-        param = props.getProperty(PROP_MAXRESULTS, DEFAULT_MAXRESULTS + "");
+        param = props.getProperty(Props.PROP_MAXRESULTS, Props.DEFAULT_MAXRESULTS + "");
         if (StringUtils.isNotBlank(param)) {
             LOG.info(paramName + "=" + param);
             if (!StringUtils.isNumeric(param)) {
-                throw new NoRequiredPropertyException(paramName + " property is not a valid value", PROP_MAXRESULTS);
+                throw new NoRequiredPropertyException(paramName + " property is not a valid value", Props.PROP_MAXRESULTS);
             }
             maxResults = Integer.parseInt(param);
         }
-        param = props.getProperty(PROP_VERSIONING);
+        paramName = PROP_VERSIONING;
+        param = props.getProperty(paramName);
         if (StringUtils.isNotBlank(param)) {
             LOG.info(paramName + "=" + param);
             try {
                 Boolean paramValue = "true".equalsIgnoreCase(param);
                 isVersioned = paramValue;
             } catch (Exception e) {
-                throw new NoRequiredPropertyException(paramName + " parameter is not true or false", PROP_MAXRESULTS);
+                throw new NoRequiredPropertyException(paramName + " parameter is not true or false", Props.PROP_MAXRESULTS);
             }
         }
-
-        param = props.getProperty(PROP_USE_POOLING);
+        paramName = PROP_USE_POOLING;
+        param = props.getProperty(paramName);
         if ("true".equalsIgnoreCase(param)) {
             c3p0 = true;
             paramName = props.getProperty(PROP_C3P0_MINPOOLSIZE, DEFAULT_C3P0_MINPOOLSIZE + "");
@@ -562,7 +556,7 @@ public class JDBCPageProvider implements PageProvider {
     public void putPageText(Page page, String text) throws ProviderException {
         Connection conn = null;
         PreparedStatement cmd = null;
-        String sql="TBD";
+        String sql = "TBD";
         try {
             conn = getConnection();
             String changenote = "new page";

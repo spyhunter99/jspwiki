@@ -19,6 +19,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.wiki.api.exceptions.PluginException;
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -32,7 +33,13 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
+import static org.apache.jspwiki.plugins.dbpages.Props.PROP_DRIVER;
+import static org.apache.jspwiki.plugins.dbpages.Props.PROP_MAXRESULTS;
+import static org.apache.jspwiki.plugins.dbpages.Props.PROP_PASSWORD;
+import static org.apache.jspwiki.plugins.dbpages.Props.PROP_URL;
+import static org.apache.jspwiki.plugins.dbpages.Props.PROP_USER;
 import org.apache.wiki.api.core.Engine;
+import org.apache.wiki.api.exceptions.NoRequiredPropertyException;
 import org.apache.wiki.api.plugin.Plugin;
 import org.apache.wiki.plugin.PluginManager;
 import org.apache.wiki.render.RenderingManager;
@@ -43,8 +50,7 @@ import org.apache.wiki.render.RenderingManager;
  */
 public class JDBCPlugin implements Plugin {
 
-    private final Logger log = Logger.getLogger(JDBCPlugin.class);
-
+    private final Logger LOG = Logger.getLogger(JDBCPlugin.class);
 
     public static final SQLType DEFAULT_TYPE = SQLType.MYSQL;
     public static final String DEFAULT_URL = "";
@@ -56,15 +62,9 @@ public class JDBCPlugin implements Plugin {
     public static final Boolean DEFAULT_HEADER = true;
     public static final String DEFAULT_SOURCE = null;
 
-    private static final String PROP_DRIVER = "jdbc.driver";
-    private static final String PROP_URL = "jdbc.url";
-    private static final String PROP_USER = "jdbc.user";
-    private static final String PROP_PASSWORD = "jdbc.password";
-    private static final String PROP_MAXRESULTS = "jdbc.maxresults";
     private static final String PARAM_CLASS = "class";
     private static final String PARAM_SQL = "sql";
     private static final String PARAM_HEADER = "header";
-    private static final String PARAM_SOURCE = "src";
 
     private SQLType sqlType = DEFAULT_TYPE;
     private String dbUrl = DEFAULT_URL;
@@ -74,13 +74,13 @@ public class JDBCPlugin implements Plugin {
     private String className = DEFAULT_CLASS;
     private String sql = DEFAULT_SQL;
     private Boolean header = DEFAULT_HEADER;
-    private String source = DEFAULT_SOURCE;
+    private String jndiJdbcSource = DEFAULT_SOURCE;
     private DataSource ds = null;
 
     @Override
     public String execute(org.apache.wiki.api.core.Context wikiContext, Map<String, String> params) throws PluginException {
         setLogForDebug(params.get(PluginManager.PARAM_DEBUG));
-        log.info("STARTED");
+        LOG.info("STARTED");
         String result = "";
         StringBuffer buffer = new StringBuffer();
         Engine engine = wikiContext.getEngine();
@@ -126,12 +126,12 @@ public class JDBCPlugin implements Plugin {
                 buffer.append("\n");
             }
 
-            log.info("result=" + buffer.toString());
+            LOG.info("result=" + buffer.toString());
             result = engine.getManager(RenderingManager.class).textToHTML(wikiContext, buffer.toString());
 
             result = "<div class='" + className + "'>" + result + "</div>";
         } catch (Exception e) {
-            log.error("ERROR. " + e.getMessage() + ". sql=" + sql, e);
+            LOG.error("ERROR. " + e.getMessage() + ". sql=" + sql, e);
             throw new PluginException(e.getMessage());
         } finally {
             if (conn != null) {
@@ -150,20 +150,53 @@ public class JDBCPlugin implements Plugin {
         String paramName;
         String param;
 
-        log.info("validateParams() START");
-        paramName = PARAM_SOURCE;
+        LOG.info("validateParams() START");
+        paramName = Props.PARAM_JNDI_SOURCE;
         param = params.get(paramName);
         if (StringUtils.isNotBlank(param)) {
-            log.info(paramName + "=" + param);
+            LOG.info(paramName + "=" + param);
             if (!StringUtils.isAsciiPrintable(param)) {
                 throw new PluginException(paramName + " parameter is not a valid value");
             }
-            source = param;
+            jndiJdbcSource = param;
+            try {
+                Context ctx = new InitialContext();
+                ds = (DataSource) ctx.lookup("java:/comp/env/jdbc/" + jndiJdbcSource);
+                if (ds == null) {
+                    ds = (DataSource) ctx.lookup("java:" + jndiJdbcSource);
+                }
+                if (ds == null) {
+                    throw new PluginException("Could not load jndi data source " + jndiJdbcSource);
+                }
+                Connection con = null;
+                String driverStr = null;
+                try {
+                    con = ds.getConnection();
+                    driverStr = con.getMetaData().getDriverName();
+                    String jdbcUrl = con.getMetaData().getURL();
+                    Driver driver = DriverManager.getDriver(jdbcUrl);
+                    sqlType = SQLType.parse(driver.getClass().getCanonicalName());
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                    throw new PluginException(paramName + " property is not a valid value. " + e.getMessage() + ":" + driverStr);
+                } finally {
+                    if (con != null) {
+                        try {
+                            con.close();
+                        } catch (SQLException ex) {
+
+                        }
+                    }
+                }
+            } catch (NamingException e) {
+                LOG.error(e.getMessage(), e);
+                throw new PluginException("JNDI lookup failed for " + jndiJdbcSource + "!");
+            }
         }
-        paramName = getPropKey(PROP_DRIVER, source);
+        paramName = PROP_DRIVER;
         param = props.getProperty(paramName);
         if (StringUtils.isNotBlank(param)) {
-            log.info(paramName + "=" + param);
+            LOG.info(paramName + "=" + param);
             try {
                 sqlType = SQLType.parse(param);
             } catch (Exception e) {
@@ -172,32 +205,24 @@ public class JDBCPlugin implements Plugin {
             try {
                 Class.forName(param).newInstance();
             } catch (ClassNotFoundException e) {
-                log.error("Error: unable to load driver class " + param + "!", e);
+                LOG.error("Error: unable to load driver class " + param + "!", e);
                 throw new PluginException("Error: unable to load driver class " + param + "!");
             } catch (IllegalAccessException e) {
-                log.error("Error: access problem while loading " + param + "!", e);
+                LOG.error("Error: access problem while loading " + param + "!", e);
                 throw new PluginException("Error: access problem while loading " + param + "!");
             } catch (InstantiationException e) {
-                log.error("Error: unable to instantiate driver " + param + "!", e);
+                LOG.error("Error: unable to instantiate driver " + param + "!", e);
                 throw new PluginException("Error: unable to instantiate driver " + param + "!");
             } catch (Exception e) {
-                log.error("Error: unable to load driver " + param + "!", e);
+                LOG.error("Error: unable to load driver " + param + "!", e);
                 throw new PluginException("Error: unable to load driver " + param + "! " + e.getMessage());
-            }
-        } else {
-            try {
-                Context ctx = new InitialContext();
-                ds = (DataSource) ctx.lookup("java:/comp/env/jdbc/" + source);
-            } catch (NamingException e) {
-                log.error("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + source + "!");
-                throw new PluginException("Neither jspwiki-custom.properties or conf/context.xml has not been configured for " + source + "!");
             }
         }
         if (ds == null) {
-            paramName = getPropKey(PROP_URL, source);
+            paramName = PROP_URL;
             param = props.getProperty(paramName);
             if (StringUtils.isNotBlank(param)) {
-                log.info(paramName + "=" + param);
+                LOG.info(paramName + "=" + param);
                 if (!StringUtils.isAsciiPrintable(param)) {
                     throw new PluginException(paramName + " property is not a valid value");
                 }
@@ -207,29 +232,27 @@ public class JDBCPlugin implements Plugin {
                 }
                 dbUrl = param;
             }
-            paramName = getPropKey(PROP_USER, source);
-            param = props.getProperty(paramName);
+            param = props.getProperty(PROP_USER);
             if (StringUtils.isNotBlank(param)) {
-                log.info(paramName + "=" + param);
+                LOG.info(paramName + "=" + param);
                 if (!StringUtils.isAsciiPrintable(param)) {
                     throw new PluginException(paramName + " property is not a valid value");
                 }
                 dbUser = param;
             }
-            paramName = getPropKey(PROP_PASSWORD, source);
-            param = props.getProperty(paramName);
+            param = props.getProperty(PROP_PASSWORD);
             if (StringUtils.isNotBlank(param)) {
-                log.info(paramName + "=" + param);
+                LOG.info(paramName + "=" + param);
                 if (!StringUtils.isAsciiPrintable(param)) {
                     throw new PluginException(paramName + " property is not a valid value");
                 }
                 dbPassword = param;
             }
         }
-        paramName = getPropKey(PROP_MAXRESULTS, source);
+        paramName = PROP_MAXRESULTS;
         param = props.getProperty(paramName);
         if (StringUtils.isNotBlank(param)) {
-            log.info(paramName + "=" + param);
+            LOG.info(paramName + "=" + param);
             if (!StringUtils.isNumeric(param)) {
                 throw new PluginException(paramName + " property is not a valid value");
             }
@@ -238,7 +261,7 @@ public class JDBCPlugin implements Plugin {
         paramName = PARAM_CLASS;
         param = params.get(paramName);
         if (StringUtils.isNotBlank(param)) {
-            log.info(paramName + "=" + param);
+            LOG.info(paramName + "=" + param);
             if (!StringUtils.isAsciiPrintable(param)) {
                 throw new PluginException(paramName + " parameter is not a valid value");
             }
@@ -247,7 +270,7 @@ public class JDBCPlugin implements Plugin {
         paramName = PARAM_SQL;
         param = params.get(paramName);
         if (StringUtils.isNotBlank(param)) {
-            log.info(paramName + "=" + param);
+            LOG.info(paramName + "=" + param);
             if (!StringUtils.isAsciiPrintable(param)) {
                 throw new PluginException(paramName + " parameter is not a valid value");
             }
@@ -255,16 +278,18 @@ public class JDBCPlugin implements Plugin {
                 throw new PluginException(paramName + " parameter needs to start with 'SELECT'.");
             }
             sql = param;
+        } else {
+            throw new PluginException(paramName + " parameter was not defined");
         }
         paramName = PARAM_HEADER;
         param = params.get(paramName);
         if (StringUtils.isNotBlank(param)) {
-            log.info(paramName + "=" + param);
+            LOG.info(paramName + "=" + param);
             if (!param.equalsIgnoreCase("true") && !param.equalsIgnoreCase("false")
                     && !param.equals("0") && !param.equals("1")) {
                 throw new PluginException(paramName + " parameter is not a valid boolean");
             }
-            header = Boolean.parseBoolean(param);
+            header = "true".equalsIgnoreCase(param);
         }
     }
 
@@ -279,27 +304,26 @@ public class JDBCPlugin implements Plugin {
                 case MSSQL:
                     if (!result.toLowerCase().contains(" top")) {
                         result = sql.replace("select", "select top " + maxResults);
-                        result += ";";
                     }
                     break;
                 case MYSQL:
                     if (!result.toLowerCase().contains(" limit ")) {
-                        result = result + " limit " + maxResults + ";";
+                        result = result + " limit " + maxResults;
                     }
                     break;
                 case ORACLE:
                     if (!result.toLowerCase().contains("rownum")) {
-                        result = "select * from ( " + result + " ) where ROWNUM <= " + maxResults + ";";
+                        result = "select * from ( " + result + " ) where ROWNUM <= " + maxResults;
                     }
                     break;
                 case POSTGRESQL:
                     if (!result.toLowerCase().contains(" limit ")) {
-                        result = result + " limit " + maxResults + ";";
+                        result = result + " limit " + maxResults;
                     }
                     break;
                 case DB2:
                     if (!result.toLowerCase().contains(" fetch")) {
-                        result = result + " FETCH FIRST " + maxResults + " ROWS ONLY;";
+                        result = result + " FETCH FIRST " + maxResults + " ROWS ONLY";
                     }
                     break;
                 case SYBASE:
@@ -323,7 +347,7 @@ public class JDBCPlugin implements Plugin {
 
     private void setLogForDebug(String value) {
         if (StringUtils.isNotBlank(value) && (value.equalsIgnoreCase("true") || value.equals("1"))) {
-            log.setLevel(Level.INFO);
+            LOG.setLevel(Level.INFO);
         }
     }
 }

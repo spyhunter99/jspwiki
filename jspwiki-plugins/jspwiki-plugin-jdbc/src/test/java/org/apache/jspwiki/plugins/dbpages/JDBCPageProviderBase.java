@@ -52,18 +52,18 @@ public abstract class JDBCPageProviderBase {
     void setupProvider() throws Exception {
 
         Properties props = TestEngine.getTestProperties();
-        props.setProperty(JDBCPageProvider.PROP_DRIVER, getType().getDriverClass());
+        props.setProperty(Props.PROP_DRIVER, getType().getDriverClass());
         if (!withJndiLookup()) {
             if (getType() == SQLType.SQLITE) {
-                props.setProperty(JDBCPageProvider.PROP_URL, "jdbc:sqlite:./target/" + this.getClass().getSimpleName() + ".db");
+                props.setProperty(Props.PROP_URL, "jdbc:sqlite:./target/" + this.getClass().getSimpleName() + ".db");
             } else if (getType() == SQLType.DERBY_LOCAL) {
                 File target = new File("./target/derby" + this.getClass().getSimpleName());
                 String path = target.getCanonicalPath();
                 path = path.replace("\\", "/");
-                props.setProperty(JDBCPageProvider.PROP_URL, "jdbc:derby:" + path + ";create=true");
+                props.setProperty(Props.PROP_URL, "jdbc:derby:" + path + ";create=true");
             }
         } else {
-            props.setProperty(JDBCPageProvider.PARAM_JNDI_SOURCE, "JSPWIKI");
+            props.setProperty(Props.PARAM_JNDI_SOURCE, "JSPWIKI");
             
         }
         if (withVersionSupport()) {
@@ -226,7 +226,7 @@ public abstract class JDBCPageProviderBase {
     void testValidateParamsMissingUrlThrows() {
         Assumptions.assumeFalse(withJndiLookup());
         Properties badProps = new Properties();
-        badProps.setProperty(JDBCPageProvider.PROP_DRIVER, "org.sqlite.JDBC");
+        badProps.setProperty(Props.PROP_DRIVER, "org.sqlite.JDBC");
         assertThrows(org.apache.wiki.api.exceptions.NoRequiredPropertyException.class, () -> provider.validateParams(badProps));
     }
 
