@@ -281,7 +281,7 @@ public class JDBCPageProvider implements PageProvider {
                 throw new NoRequiredPropertyException(paramName + " property is not a valid value. " + param, Props.PROP_DRIVER);
             }
             try {
-                Class.forName(param).newInstance();
+                Class.forName(param).getDeclaredConstructor().newInstance();
             } catch (ClassNotFoundException e) {
                 LOG.error("Error: unable to load driver class " + param + "!", e);
                 throw new NoRequiredPropertyException("Error: unable to load driver class " + param + "!", Props.PROP_DRIVER);

@@ -56,21 +56,19 @@ public class JDBCPlugin implements Plugin {
     public static final String DEFAULT_URL = "";
     public static final String DEFAULT_USER = "";
     public static final String DEFAULT_PASSWORD = "";
-    public static final Integer DEFAULT_MAXRESULTS = 50;
     public static final String DEFAULT_CLASS = "sql-table";
     public static final String DEFAULT_SQL = "select 1";
     public static final Boolean DEFAULT_HEADER = true;
     public static final String DEFAULT_SOURCE = null;
 
-    private static final String PARAM_CLASS = "class";
-    private static final String PARAM_SQL = "sql";
-    private static final String PARAM_HEADER = "header";
+    public static final String PARAM_CLASS = "class";
+    public static final String PARAM_SQL = "sql";
+    public static final String PARAM_HEADER = "header";
 
     private SQLType sqlType = DEFAULT_TYPE;
     private String dbUrl = DEFAULT_URL;
     private String dbUser = DEFAULT_USER;
     private String dbPassword = DEFAULT_PASSWORD;
-    private Integer maxResults = DEFAULT_MAXRESULTS;
     private String className = DEFAULT_CLASS;
     private String sql = DEFAULT_SQL;
     private Boolean header = DEFAULT_HEADER;
@@ -105,7 +103,6 @@ public class JDBCPlugin implements Plugin {
                 conn = ds.getConnection();
             }
 
-            sql = addLimits(sqlType, sql, maxResults);
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(sql);
 
@@ -203,7 +200,7 @@ public class JDBCPlugin implements Plugin {
                 throw new PluginException(paramName + " property is not a valid value. " + param);
             }
             try {
-                Class.forName(param).newInstance();
+                Class.forName(param).getDeclaredConstructor().newInstance();
             } catch (ClassNotFoundException e) {
                 LOG.error("Error: unable to load driver class " + param + "!", e);
                 throw new PluginException("Error: unable to load driver class " + param + "!");
@@ -249,15 +246,7 @@ public class JDBCPlugin implements Plugin {
                 dbPassword = param;
             }
         }
-        paramName = PROP_MAXRESULTS;
-        param = props.getProperty(paramName);
-        if (StringUtils.isNotBlank(param)) {
-            LOG.info(paramName + "=" + param);
-            if (!StringUtils.isNumeric(param)) {
-                throw new PluginException(paramName + " property is not a valid value");
-            }
-            maxResults = Integer.parseInt(param);
-        }
+
         paramName = PARAM_CLASS;
         param = params.get(paramName);
         if (StringUtils.isNotBlank(param)) {
@@ -291,58 +280,6 @@ public class JDBCPlugin implements Plugin {
             }
             header = "true".equalsIgnoreCase(param);
         }
-    }
-
-    private String addLimits(SQLType sqlType, String sql, Integer maxResults) {
-        String result = sql;
-        if (StringUtils.isNotBlank(sql)) {
-            result = sql.trim();
-            if (result.endsWith(";")) {
-                result = result.substring(result.length() - 1);
-            }
-            switch (sqlType) {
-                case MSSQL:
-                    if (!result.toLowerCase().contains(" top")) {
-                        result = sql.replace("select", "select top " + maxResults);
-                    }
-                    break;
-                case MYSQL:
-                    if (!result.toLowerCase().contains(" limit ")) {
-                        result = result + " limit " + maxResults;
-                    }
-                    break;
-                case ORACLE:
-                    if (!result.toLowerCase().contains("rownum")) {
-                        result = "select * from ( " + result + " ) where ROWNUM <= " + maxResults;
-                    }
-                    break;
-                case POSTGRESQL:
-                    if (!result.toLowerCase().contains(" limit ")) {
-                        result = result + " limit " + maxResults;
-                    }
-                    break;
-                case DB2:
-                    if (!result.toLowerCase().contains(" fetch")) {
-                        result = result + " FETCH FIRST " + maxResults + " ROWS ONLY";
-                    }
-                    break;
-                case SYBASE:
-                    if (!result.toLowerCase().contains(" top")) {
-                        result = result.replace("select", "select top " + maxResults);
-                        result += ";";
-                    }
-                    break;
-            }
-        }
-        return result;
-    }
-
-    private String getPropKey(String currentKey, String source) {
-        String result = currentKey;
-        if (StringUtils.isNotBlank(source)) {
-            result += "." + source;
-        }
-        return result;
     }
 
     private void setLogForDebug(String value) {

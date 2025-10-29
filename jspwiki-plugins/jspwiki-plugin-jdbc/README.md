@@ -50,7 +50,7 @@ query a JDBC table, then format the results in the wiki page.
 
 Usage:
 {{{
-[{org.apache.jspwiki.plugins.dbpages (inputs here) }]
+[{org.apache.jspwiki.plugins.dbpages.JDBCPlugin (inputs here) }]
 }}}
 
 Available Inputs:
