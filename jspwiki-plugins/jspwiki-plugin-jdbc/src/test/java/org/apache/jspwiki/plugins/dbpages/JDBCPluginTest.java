@@ -84,7 +84,7 @@ public class JDBCPluginTest {
                 + " "
                 + Props.PARAM_JNDI_SOURCE + "=" + JDBCPluginTest.class.getSimpleName()
                 + " "
-                + JDBCPlugin.PARAM_SQL + "=\"select * from Students\" "
+                + JDBCPlugin.PARAM_SQL + "='select * from Students' "
                 + "}]\n";
 
         testEngine.saveText(JDBCPluginTest.class.getSimpleName(), src);
@@ -101,7 +101,7 @@ public class JDBCPluginTest {
                 + " "
                 + Props.PARAM_JNDI_SOURCE + "=" + JDBCPluginTest.class.getSimpleName()
                 + " "
-                + JDBCPlugin.PARAM_SQL + "=\"select * from Students where LastName='Smith'\" "
+                + JDBCPlugin.PARAM_SQL + "='select * from Students where LastName=\"Smith\"' "
                 + "}]\n";
 
         testEngine.saveText(JDBCPluginTest.class.getSimpleName(), src);
