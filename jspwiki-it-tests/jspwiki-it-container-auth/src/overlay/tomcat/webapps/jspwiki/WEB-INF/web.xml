@@ -240,48 +240,18 @@
    -->
 
    <!--  REMOVE ME TO ENABLE CONTAINER-MANAGED AUTH -->
-
-   <security-constraint>
+	<security-constraint>
        <web-resource-collection>
-           <web-resource-name>Administrative Area</web-resource-name>
-           <url-pattern>/Delete.jsp</url-pattern>
-       </web-resource-collection>
-       <auth-constraint>
-           <role-name>Admin</role-name>
-       </auth-constraint>
-       <!--<user-data-constraint>
-           <transport-guarantee>CONFIDENTIAL</transport-guarantee>
-       </user-data-constraint>-->
-   </security-constraint>
-
-   <security-constraint>
-       <web-resource-collection>
-           <web-resource-name>Authenticated area</web-resource-name>
+           <web-resource-name>all</web-resource-name>
            <url-pattern>/*</url-pattern>
-           <http-method>DELETE</http-method>
-           <http-method>GET</http-method>
-           <http-method>HEAD</http-method>
-           <http-method>POST</http-method>
-           <http-method>PUT</http-method>
        </web-resource-collection>
-
-       <web-resource-collection>
-           <web-resource-name>Read-only Area</web-resource-name>
-           <url-pattern>/attach</url-pattern>
-           <http-method>DELETE</http-method>
-           <http-method>POST</http-method>
-           <http-method>PUT</http-method>
-       </web-resource-collection>
-
-       <auth-constraint>
-           <role-name>Admin</role-name>
-           <role-name>Authenticated</role-name>
-       </auth-constraint>
-
+       
        <!--<user-data-constraint>
            <transport-guarantee>CONFIDENTIAL</transport-guarantee>
        </user-data-constraint>-->
    </security-constraint>
+   
+  
 
    <login-config>
        <auth-method>BASIC</auth-method>
@@ -291,7 +261,7 @@
        <description>
            This logical role includes all authenticated users
        </description>
-       <role-name>Authenticated</role-name>
+       <role-name>wikiuser</role-name>
    </security-role>
 
    <security-role>
@@ -301,10 +271,6 @@
        <role-name>Admin</role-name>
    </security-role>
 
-	<security-role><role-name>wikiuser</role-name></security-role>
-	<security-role><role-name>wikispecialuser</role-name></security-role>
-	<security-role><role-name>wiki-data-normal</role-name></security-role>
-	<security-role><role-name>wiki-data-protected</role-name></security-role>
 
 
 </web-app>

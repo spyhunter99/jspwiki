@@ -285,7 +285,7 @@ public class WikiEngine implements Engine {
             initComponent( AttachmentManager.class, this, props );
             initComponent( VariableManager.class, props );
             initComponent( SearchManager.class, this, props );
-            initComponent( AuthenticationManager.class );
+            initComponent( AuthenticationManager.class, props );
             initComponent( authClassName, AuthorizationManager.class );
             initComponent( UserManager.class );
             initComponent( GroupManager.class );

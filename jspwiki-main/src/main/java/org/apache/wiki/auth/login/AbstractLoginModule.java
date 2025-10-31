@@ -26,8 +26,8 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 
 /**
@@ -130,7 +130,7 @@ public abstract class AbstractLoginModule implements LoginModule {
      */
     @Override
     public final void initialize(final Subject subject, final CallbackHandler callbackHandler, final Map<String,?> sharedState, final Map<String,?> options ) {
-        m_principals = new HashSet<>();
+        m_principals = new ArrayList<>();
         m_subject = subject;
         m_handler = callbackHandler;
         m_state = sharedState;

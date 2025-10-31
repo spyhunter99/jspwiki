@@ -38,6 +38,10 @@ public final class WebContainerCallbackHandler implements CallbackHandler {
     private final HttpServletRequest m_request;
     private final Engine m_engine;
 
+    public Engine getEngine() {
+        return m_engine;
+    }
+
     /**
      * Create a new handler.
      *

@@ -30,6 +30,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.security.Principal;
+import org.apache.wiki.api.core.ContextEnum;
+import org.apache.wiki.auth.authorize.Role;
 
 /**
  * <p>
@@ -100,7 +102,11 @@ public class WebContainerLoginModule extends AbstractLoginModule {
             }
             LOG.debug("Logged in container principal {}.", principal.getName() );
             m_principals.add( principal );
-
+            if (m_handler instanceof  WebContainerCallbackHandler cb) {
+                addRoles(cb, request, "jspwiki.role.admin", "Admin");
+                addRoles(cb, request, "jspwiki.role.authenticated", "Authenticated");
+                addRoles(cb, request, "jspwiki.role.extraRoles", null);
+            }
             return true;
         } catch( final IOException e ) {
             LOG.error( "IOException: {}", e.getMessage() );
@@ -108,6 +114,24 @@ public class WebContainerLoginModule extends AbstractLoginModule {
         } catch( final UnsupportedCallbackException e ) {
             LOG.error( "UnsupportedCallbackException: {}", e.getMessage() );
             return false;
+        }
+    }
+
+    private void addRoles(WebContainerCallbackHandler cb, HttpServletRequest request, String configProp, String jspWikiRole) {
+        if (cb.getEngine().getWikiProperties().containsKey(configProp)) {
+            String roles = cb.getEngine().getWikiProperties().getProperty(configProp);
+            if (roles != null) {
+                String[] parts = roles.split("\\,");
+                for (String s : parts) {
+                    if (request.isUserInRole(s)) {
+                        m_principals.add(new WikiPrincipal(s));
+                        if (jspWikiRole != null) {
+                            m_principals.add(new WikiPrincipal(jspWikiRole));
+                        }
+                    }
+                }
+            }
+
         }
     }
 }

@@ -50,7 +50,7 @@ public class UserNameTag extends WikiTagBase {
     public final int doWikiStartTag() throws IOException {
         final Engine engine = m_wikiContext.getEngine();
         final Session wikiSession = Wiki.session().find( engine, ( HttpServletRequest )pageContext.getRequest() );
-        final Principal user = wikiSession.getUserPrincipal();
+        final Principal user = wikiSession.getLoginPrincipal();
 
         if( user != null ) {
             if( VALID_USER_NAME_PATTERN.matcher( user.getName() ).matches() ) {
