@@ -30,7 +30,7 @@ import org.apache.wiki.auth.authorize.Group;
 import org.apache.wiki.auth.authorize.GroupManager;
 import org.apache.wiki.auth.user.UserDatabase;
 import org.apache.wiki.auth.user.UserProfile;
-import org.apache.wiki.i18n.InternationalizationManager;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.pages.PageManager;
 import org.apache.wiki.providers.FileSystemProvider;
 import org.apache.wiki.util.TextUtil;

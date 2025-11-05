@@ -18,22 +18,85 @@
  */
 package org.apache.wiki.i18n;
 
+import java.io.IOException;
+import java.text.MessageFormat;
+import java.util.Locale;
+import java.util.MissingResourceException;
+import java.util.Properties;
+import java.util.ResourceBundle;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.api.core.Engine;
-
+import static org.apache.wiki.api.core.InternationalizationManager.CORE_BUNDLE;
+import org.apache.wiki.api.exceptions.NoRequiredPropertyException;
 
 /**
- *  Manages all internationalization in JSPWiki.
+ * Manages all internationalization in JSPWiki.
  *
- *  @since 2.6
+ * @since 2.6
  */
 public class DefaultInternationalizationManager implements InternationalizationManager {
 
-    /**
-     *  Constructs a new InternationalizationManager.
+    @Override
+    public void initialize(Engine engine, Properties properties) throws NoRequiredPropertyException, IOException {
+    }
+
+    @Override
+    public String getProviderInfo() {
+        return "Real provider: " + DefaultInternationalizationManager.class.getName();
+    }
+     /**
+     *  Returns a String from the CORE_BUNDLE using English as the default locale.
      *
-     *  @param engine To which engine this belongs to
+     *  @param key Key to find
+     *  @return The English string
+     *  @throws MissingResourceException If there is no such key
      */
-    public DefaultInternationalizationManager( final Engine engine ) {
+    public String get( final String key ) throws MissingResourceException {
+        return get( CORE_BUNDLE, Locale.ENGLISH, key );
+    }
+    
+    /**
+     *  Finds a resource bundle.
+     *
+     *  @param bundle The ResourceBundle to find.  Must exist.
+     *  @param locale The Locale to use.  Set to null to get the default locale.
+     *  @return A localized string
+     *  @throws MissingResourceException If the key cannot be located at all, even from the default locale.
+     */
+    public ResourceBundle getBundle( final String bundle, Locale locale ) throws MissingResourceException {
+        if( locale == null ) {
+            locale = Locale.getDefault();
+        }
+
+        return ResourceBundle.getBundle( bundle, locale );
+    }
+
+    /**
+     *  If you are too lazy to open your own bundle, use this method to get a string simply from a bundle.
+     *
+     *  @param bundle Which bundle the string is in
+     *  @param locale Locale to use - null for default
+     *  @param key    Which key to use.
+     *  @return A localized string (or from the default language, if not found)
+     *  @throws MissingResourceException If the key cannot be located at all, even from the default locale.
+     */
+    public String get( final String bundle, final Locale locale, final String key ) throws MissingResourceException {
+        return getBundle( bundle, locale ).getString( key );
+    }
+
+    /**
+     *  Obtain a parameterized String from the bundle.
+     *
+     *  @param bundle Which bundle the string is in
+     *  @param locale Locale to use - null for default
+     *  @param key    Which key to use.
+     *  @param args parameters to insert in the String.
+     *  @return A localized string (or from the default language, if not found)
+     *  @throws MissingResourceException If the key cannot be located at all, even from the default locale.
+     */
+    public String get( final String bundle, final Locale locale, final String key, final Object... args ) throws MissingResourceException {
+        final MessageFormat mf = new MessageFormat( get( bundle, locale, key ), locale );
+        return mf.format( args );
     }
 
 }

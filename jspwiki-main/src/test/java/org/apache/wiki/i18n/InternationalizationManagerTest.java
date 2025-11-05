@@ -17,6 +17,7 @@
     under the License.    
  */
 package org.apache.wiki.i18n;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,7 @@ import java.util.Locale;
 
 public class InternationalizationManagerTest
 {
-    InternationalizationManager i18n = new DefaultInternationalizationManager( null );
+    InternationalizationManager i18n = new DefaultInternationalizationManager( );
     
     @BeforeEach
     public void setUp() throws Exception

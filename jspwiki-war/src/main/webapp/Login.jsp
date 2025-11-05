@@ -29,7 +29,8 @@
 <%@ page import="org.apache.wiki.auth.user.DuplicateUserException" %>
 <%@ page import="org.apache.wiki.auth.user.UserProfile" %>
 <%@ page import="org.apache.wiki.http.filter.CsrfProtectionFilter" %>
-<%@ page import="org.apache.wiki.i18n.InternationalizationManager" %>
+<%@ page import="org.apache.wiki.api.core.InternationalizationManager" %>
+
 <%@ page import="org.apache.wiki.pages.PageManager" %>
 <%@ page import="org.apache.wiki.preferences.Preferences" %>
 <%@ page import="org.apache.wiki.workflow.DecisionRequiredException" %>

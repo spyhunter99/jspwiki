@@ -29,7 +29,7 @@ import org.apache.wiki.api.filters.PageFilter;
 import org.apache.wiki.api.providers.WikiProvider;
 import org.apache.wiki.attachment.AttachmentManager;
 import org.apache.wiki.filters.FilterManager;
-import org.apache.wiki.i18n.InternationalizationManager;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.modules.InternalModule;
 import org.apache.wiki.pages.PageManager;
 import org.apache.wiki.preferences.Preferences;

@@ -29,7 +29,7 @@ import org.apache.wiki.api.core.Page;
 import org.apache.wiki.api.exceptions.PluginException;
 import org.apache.wiki.api.plugin.Plugin;
 import org.apache.wiki.attachment.Attachment;
-import org.apache.wiki.i18n.InternationalizationManager;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.pages.PageManager;
 import org.apache.wiki.preferences.Preferences;
 import org.apache.wiki.preferences.Preferences.TimeFormat;

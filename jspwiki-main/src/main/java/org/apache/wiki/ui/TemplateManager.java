@@ -22,7 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.wiki.api.core.Context;
-import org.apache.wiki.i18n.InternationalizationManager;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.modules.ModuleManager;
 import org.apache.wiki.preferences.Preferences;
 import org.apache.wiki.util.ClassUtil;

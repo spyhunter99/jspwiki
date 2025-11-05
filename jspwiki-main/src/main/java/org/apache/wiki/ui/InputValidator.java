@@ -20,7 +20,7 @@ package org.apache.wiki.ui;
 
 import org.apache.wiki.api.core.Context;
 import org.apache.wiki.api.core.Session;
-import org.apache.wiki.i18n.InternationalizationManager;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.preferences.Preferences;
 
 import java.text.MessageFormat;

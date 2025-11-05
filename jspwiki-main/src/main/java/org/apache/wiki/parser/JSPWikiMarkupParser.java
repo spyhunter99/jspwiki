@@ -43,7 +43,7 @@ package org.apache.wiki.parser;
     import org.apache.wiki.auth.UserManager;
     import org.apache.wiki.auth.WikiSecurityException;
     import org.apache.wiki.auth.acl.AclManager;
-    import org.apache.wiki.i18n.InternationalizationManager;
+    import org.apache.wiki.api.core.InternationalizationManager;
     import org.apache.wiki.preferences.Preferences;
     import org.apache.wiki.util.TextUtil;
     import org.apache.wiki.util.XmlUtil;

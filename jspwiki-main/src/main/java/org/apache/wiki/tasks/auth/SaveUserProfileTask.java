@@ -25,7 +25,7 @@ import org.apache.wiki.api.core.ContextEnum;
 import org.apache.wiki.api.exceptions.WikiException;
 import org.apache.wiki.auth.UserManager;
 import org.apache.wiki.auth.user.UserProfile;
-import org.apache.wiki.i18n.InternationalizationManager;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.tasks.TasksManager;
 import org.apache.wiki.util.HttpUtil;
 import org.apache.wiki.util.MailUtil;

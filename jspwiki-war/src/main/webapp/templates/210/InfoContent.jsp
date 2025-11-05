@@ -24,7 +24,8 @@
 <%@ page import="org.apache.wiki.attachment.AttachmentManager" %>
 <%@ page import="org.apache.wiki.auth.*" %>
 <%@ page import="org.apache.wiki.auth.permissions.*" %>
-<%@ page import="org.apache.wiki.i18n.InternationalizationManager" %>
+<%@ page import="org.apache.wiki.api.core.InternationalizationManager" %>
+
 <%@ page import="org.apache.wiki.pages.PageManager" %>
 <%@ page import="org.apache.wiki.preferences.Preferences" %>
 <%@ page import="org.apache.wiki.ui.progress.ProgressManager" %>

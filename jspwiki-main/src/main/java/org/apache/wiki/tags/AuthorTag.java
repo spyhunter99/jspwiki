@@ -20,7 +20,7 @@ package org.apache.wiki.tags;
 
 import org.apache.wiki.api.core.Engine;
 import org.apache.wiki.api.core.Page;
-import org.apache.wiki.i18n.InternationalizationManager;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.pages.PageManager;
 import org.apache.wiki.parser.MarkupParser;
 import org.apache.wiki.parser.WikiDocument;

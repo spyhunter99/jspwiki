@@ -23,13 +23,14 @@ import com.vladsch.flexmark.util.ast.NodeTracker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.wiki.api.core.Context;
-import org.apache.wiki.i18n.InternationalizationManager;
 import org.apache.wiki.markdown.nodes.JSPWikiLink;
-import org.apache.wiki.preferences.Preferences;
 import org.apache.wiki.variables.VariableManager;
 
 import java.text.MessageFormat;
+import java.util.Locale;
 import java.util.ResourceBundle;
+import org.apache.wiki.api.core.InternationalizationManager;
+import org.apache.wiki.api.providers.PreferenceProvider;
 
 
 /**
@@ -79,7 +80,13 @@ public class MetadataLinkNodePostProcessorState implements NodePostProcessorStat
                 state.nodeRemoved( link );
             }
         } catch( final Exception e ) {
-            final ResourceBundle rb = Preferences.getBundle( wikiContext, InternationalizationManager.CORE_BUNDLE );
+            InternationalizationManager manager = wikiContext.getEngine().getManager(InternationalizationManager.class);
+            PreferenceProvider userPref = wikiContext.getEngine().getManager(PreferenceProvider.class);
+            Locale locale = userPref.getLocale(wikiContext);
+            ResourceBundle rb = manager.getBundle( InternationalizationManager.CORE_BUNDLE,  locale );
+            if (rb==null) {
+                rb = manager.getBundle( InternationalizationManager.CORE_BUNDLE,  Locale.getDefault() );
+            }
             NodePostProcessorStateCommonOperations.makeError( state, link,
                                                               MessageFormat.format( rb.getString( "markupparser.error.invalidset" ), metadataLine ) );
         }

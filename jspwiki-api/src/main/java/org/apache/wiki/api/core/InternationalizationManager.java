@@ -16,12 +16,12 @@
     specific language governing permissions and limitations
     under the License.  
  */
-package org.apache.wiki.i18n;
+package org.apache.wiki.api.core;
 
-import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
+import org.apache.wiki.api.providers.WikiProvider;
 
 
 /**
@@ -29,7 +29,7 @@ import java.util.ResourceBundle;
  *
  *  @since 2.6
  */
-public interface InternationalizationManager {
+public interface InternationalizationManager extends WikiProvider {
 
     /** The name of the ResourceBundle which contains any and all JSPWiki core resource strings.  It's value is {@value}. */
     String CORE_BUNDLE = "CoreResources";
@@ -46,9 +46,7 @@ public interface InternationalizationManager {
      *  @return The English string
      *  @throws MissingResourceException If there is no such key
      */
-    default String get( final String key ) throws MissingResourceException {
-        return get( CORE_BUNDLE, Locale.ENGLISH, key );
-    }
+    String get( final String key ) throws MissingResourceException ;
     
     /**
      *  Finds a resource bundle.
@@ -58,13 +56,7 @@ public interface InternationalizationManager {
      *  @return A localized string
      *  @throws MissingResourceException If the key cannot be located at all, even from the default locale.
      */
-    default ResourceBundle getBundle( final String bundle, Locale locale ) throws MissingResourceException {
-        if( locale == null ) {
-            locale = Locale.getDefault();
-        }
-
-        return ResourceBundle.getBundle( bundle, locale );
-    }
+    ResourceBundle getBundle( final String bundle, Locale locale ) throws MissingResourceException ;
 
     /**
      *  If you are too lazy to open your own bundle, use this method to get a string simply from a bundle.
@@ -75,9 +67,7 @@ public interface InternationalizationManager {
      *  @return A localized string (or from the default language, if not found)
      *  @throws MissingResourceException If the key cannot be located at all, even from the default locale.
      */
-    default String get( final String bundle, final Locale locale, final String key ) throws MissingResourceException {
-        return getBundle( bundle, locale ).getString( key );
-    }
+    String get( final String bundle, final Locale locale, final String key ) throws MissingResourceException ;
 
     /**
      *  Obtain a parameterized String from the bundle.
@@ -89,9 +79,6 @@ public interface InternationalizationManager {
      *  @return A localized string (or from the default language, if not found)
      *  @throws MissingResourceException If the key cannot be located at all, even from the default locale.
      */
-    default String get( final String bundle, final Locale locale, final String key, final Object... args ) throws MissingResourceException {
-        final MessageFormat mf = new MessageFormat( get( bundle, locale, key ), locale );
-        return mf.format( args );
-    }
+    String get( final String bundle, final Locale locale, final String key, final Object... args ) throws MissingResourceException ;
 
 }

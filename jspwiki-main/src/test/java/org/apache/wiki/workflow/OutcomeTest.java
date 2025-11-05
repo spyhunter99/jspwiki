@@ -20,7 +20,7 @@ package org.apache.wiki.workflow;
 
 import org.apache.wiki.TestEngine;
 import org.apache.wiki.WikiEngine;
-import org.apache.wiki.i18n.InternationalizationManager;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

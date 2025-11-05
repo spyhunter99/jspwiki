@@ -312,7 +312,7 @@ public final class ClassUtil {
             mappedClass = requestedClass;
         }
         
-        return Class.forName( mappedClass );
+        return Class.forName( mappedClass.trim() );
     }
     
     /**

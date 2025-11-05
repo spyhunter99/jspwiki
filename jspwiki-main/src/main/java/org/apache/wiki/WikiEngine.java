@@ -41,7 +41,7 @@ import org.apache.wiki.event.WikiEventListener;
 import org.apache.wiki.event.WikiEventManager;
 import org.apache.wiki.event.WikiPageEvent;
 import org.apache.wiki.filters.FilterManager;
-import org.apache.wiki.i18n.InternationalizationManager;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.pages.PageManager;
 import org.apache.wiki.plugin.PluginManager;
 import org.apache.wiki.references.ReferenceManager;
@@ -82,6 +82,7 @@ import java.util.Properties;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import org.apache.wiki.api.providers.PreferenceProvider;
 
 
 /**
@@ -293,7 +294,10 @@ public class WikiEngine implements Engine {
             initComponent( aclClassName, AclManager.class );
             initComponent( WorkflowManager.class );
             initComponent( TasksManager.class );
-            initComponent( InternationalizationManager.class, this );
+            final String i18nClassName = m_properties.getProperty( "jspwiki.i18n", ClassUtil.getMappedClass( InternationalizationManager.class.getName() ).getName() );
+            initComponent( i18nClassName, InternationalizationManager.class);
+            final String userPrefClassName = m_properties.getProperty( "jspwiki.userPref", ClassUtil.getMappedClass( PreferenceProvider.class.getName() ).getName() );
+            initComponent( userPrefClassName, PreferenceProvider.class);
             initComponent( TemplateManager.class, this, props );
             initComponent( FilterManager.class, this, props );
             initComponent( AdminBeanManager.class, this );

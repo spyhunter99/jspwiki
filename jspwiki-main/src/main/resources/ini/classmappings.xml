@@ -68,6 +68,14 @@
     <mappedClass>org.apache.wiki.attachment.DefaultAttachmentManager</mappedClass>
   </mapping>
   <mapping>
+    <requestedClass>org.apache.wiki.api.core.InternationalizationManager</requestedClass>
+    <mappedClass> org.apache.wiki.i18n.DefaultInternationalizationManager</mappedClass>
+  </mapping>
+  <mapping>
+    <requestedClass>org.apache.wiki.api.providers.PreferenceProvider</requestedClass>
+    <mappedClass>org.apache.wiki.preferences.DefaultPreferencesManager</mappedClass>
+  </mapping>
+  <mapping>
     <requestedClass>org.apache.wiki.auth.AuthenticationManager</requestedClass>
     <mappedClass>org.apache.wiki.auth.DefaultAuthenticationManager</mappedClass>
   </mapping>
@@ -100,7 +108,7 @@
     <mappedClass>org.apache.wiki.diff.DefaultDifferenceManager</mappedClass>
   </mapping>
   <mapping>
-    <requestedClass>org.apache.wiki.i18n.InternationalizationManager</requestedClass>
+    <requestedClass>org.apache.wiki.api.core.InternationalizationManager</requestedClass>
     <mappedClass>org.apache.wiki.i18n.DefaultInternationalizationManager</mappedClass>
   </mapping>
   <mapping>

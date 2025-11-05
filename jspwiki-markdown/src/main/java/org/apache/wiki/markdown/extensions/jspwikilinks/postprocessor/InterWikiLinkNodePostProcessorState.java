@@ -26,16 +26,17 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.oro.text.regex.Pattern;
 import org.apache.wiki.api.core.Context;
-import org.apache.wiki.i18n.InternationalizationManager;
 import org.apache.wiki.markdown.nodes.JSPWikiLink;
 import org.apache.wiki.parser.LinkParsingOperations;
 import org.apache.wiki.parser.MarkupParser;
-import org.apache.wiki.preferences.Preferences;
 import org.apache.wiki.util.TextUtil;
 
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.ResourceBundle;
+import org.apache.wiki.api.core.InternationalizationManager;
+import org.apache.wiki.api.providers.PreferenceProvider;
 
 
 /**
@@ -89,7 +90,13 @@ public class InterWikiLinkNodePostProcessorState implements NodePostProcessorSta
             } else {
                 LOG.debug( refAndPage[0] + " not recognized as InterWiki link [document node: " + document + "]" );
                 final Object[] args = { refAndPage[ 0 ] };
-                final ResourceBundle rb = Preferences.getBundle( wikiContext, InternationalizationManager.CORE_BUNDLE );
+                InternationalizationManager manager = wikiContext.getEngine().getManager(InternationalizationManager.class);
+                PreferenceProvider userPref = wikiContext.getEngine().getManager(PreferenceProvider.class);
+                Locale locale = userPref.getLocale(wikiContext);
+                ResourceBundle rb = manager.getBundle( InternationalizationManager.CORE_BUNDLE,  locale );
+                if (rb==null) {
+                    rb = manager.getBundle( InternationalizationManager.CORE_BUNDLE,  Locale.getDefault() );
+                }
                 final String errMsg = MessageFormat.format( rb.getString( "markupparser.error.nointerwikiref" ), args );
                 NodePostProcessorStateCommonOperations.makeError( state, link, errMsg );
             }

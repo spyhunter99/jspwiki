@@ -25,7 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.wiki.InternalWikiException;
 import org.apache.wiki.api.core.Context;
-import org.apache.wiki.i18n.InternationalizationManager;
+import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.util.HttpUtil;
 import org.apache.wiki.util.PropertyReader;
 import org.apache.wiki.util.TextUtil;
@@ -46,7 +46,10 @@ import java.util.TimeZone;
 
 /**
  *  Represents an object which is used to store user preferences.
+ * @deprecated All capabilities were migrated to the PreferenceProvider API to 
+ * enable server side preference storage
  */
+@Deprecated
 public class Preferences extends HashMap< String,String > {
 
     private static final long serialVersionUID = 1L;
@@ -243,7 +246,7 @@ public class Preferences extends HashMap< String,String > {
      * @param bundle  The name of the bundle you are looking for.
      * @return A localized string (or from the default language, if not found)
      * @throws MissingResourceException If the bundle cannot be found
-     * @see org.apache.wiki.i18n.InternationalizationManager
+     * @see org.apache.wiki.api.core.InternationalizationManager
      */
     public static ResourceBundle getBundle( final Context context, final String bundle ) throws MissingResourceException {
         final Locale loc = getLocale( context );

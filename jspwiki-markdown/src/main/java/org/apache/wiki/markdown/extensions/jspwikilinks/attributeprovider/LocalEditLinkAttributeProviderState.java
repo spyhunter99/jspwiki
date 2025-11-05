@@ -21,13 +21,14 @@ package org.apache.wiki.markdown.extensions.jspwikilinks.attributeprovider;
 import com.vladsch.flexmark.util.ast.Node;
 import com.vladsch.flexmark.util.html.MutableAttributes;
 import org.apache.wiki.api.core.Context;
-import org.apache.wiki.i18n.InternationalizationManager;
 import org.apache.wiki.markdown.nodes.JSPWikiLink;
 import org.apache.wiki.parser.MarkupParser;
-import org.apache.wiki.preferences.Preferences;
 
 import java.text.MessageFormat;
+import java.util.Locale;
 import java.util.ResourceBundle;
+import org.apache.wiki.api.core.InternationalizationManager;
+import org.apache.wiki.api.providers.PreferenceProvider;
 
 
 /**
@@ -50,7 +51,13 @@ public class LocalEditLinkAttributeProviderState implements NodeAttributeProvide
      */
     @Override
     public void setAttributes( final MutableAttributes attributes, final JSPWikiLink link ) {
-        final ResourceBundle rb = Preferences.getBundle( wikiContext, InternationalizationManager.CORE_BUNDLE );
+        InternationalizationManager manager = wikiContext.getEngine().getManager(InternationalizationManager.class);
+        PreferenceProvider userPref = wikiContext.getEngine().getManager(PreferenceProvider.class);
+        Locale locale = userPref.getLocale(wikiContext);
+        ResourceBundle rb = manager.getBundle( InternationalizationManager.CORE_BUNDLE,  locale );
+        if (rb==null) {
+            rb = manager.getBundle( InternationalizationManager.CORE_BUNDLE,  Locale.getDefault() );
+        }
         attributes.replaceValue( "title", MessageFormat.format( rb.getString( "markupparser.link.create" ), url ) );
         attributes.replaceValue( "class", MarkupParser.CLASS_EDITPAGE );
         attributes.replaceValue( "href", link.getUrl().toString() );
