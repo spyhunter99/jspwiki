@@ -30,6 +30,7 @@ import org.jdom2.Element;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  *  Creates a Form text area element. You may specify the size of the textarea
@@ -51,7 +52,7 @@ public class FormTextarea extends FormElement {
         // Don't render if no error and error-only-rendering is on.
         final FormInfo info = getFormInfo( ctx );
         Map< String, String > previousValues = null;
-        final ResourceBundle rb = Preferences.getBundle( ctx, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( ctx, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
 
         if ( info != null ) {
             if ( info.hide() ) {

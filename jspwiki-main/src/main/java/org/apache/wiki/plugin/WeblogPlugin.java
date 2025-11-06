@@ -54,6 +54,7 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  *  <p>Builds a simple weblog.
@@ -274,7 +275,7 @@ public class WeblogPlugin implements Plugin, ParserStagePlugin {
     private void addEntryHTML( final Context context, final DateFormat entryFormat, final boolean hasComments,
                                final StringBuilder buffer, final Page entry, final Map< String, String > params) {
         final Engine engine = context.getEngine();
-        final ResourceBundle rb = Preferences.getBundle(context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE);
+        final ResourceBundle rb = I18NUtil.getBundle(context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE);
 
         buffer.append("<div class=\"weblogentry\">\n");
 

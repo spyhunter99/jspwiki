@@ -46,6 +46,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Map;
+import org.apache.wiki.i18n.I18NUtil;
 
 
 /**
@@ -190,7 +191,7 @@ public class RecentChangesPlugin extends AbstractReferralPlugin implements Plugi
                             authorinfo.addContent( author );
                         }
                     } else {
-                        authorinfo.addContent( Preferences.getBundle( context, InternationalizationManager.CORE_BUNDLE )
+                        authorinfo.addContent( I18NUtil.getBundle( context, InternationalizationManager.CORE_BUNDLE )
                                 .getString( "common.unknownauthor" ) );
                     }
 

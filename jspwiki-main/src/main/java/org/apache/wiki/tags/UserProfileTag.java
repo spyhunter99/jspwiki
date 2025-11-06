@@ -28,7 +28,6 @@ import org.apache.wiki.auth.UserManager;
 import org.apache.wiki.auth.authorize.Role;
 import org.apache.wiki.auth.user.UserProfile;
 import org.apache.wiki.api.core.InternationalizationManager;
-import org.apache.wiki.preferences.Preferences;
 import org.apache.wiki.util.TextUtil;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,6 +37,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  * <p>
@@ -172,7 +172,7 @@ public class UserProfileTag extends WikiTagBase {
     public static String printGroups( final Context context ) {
         final Principal[] roles = context.getWikiSession().getRoles();
         final List< String > tempRoles;
-        final ResourceBundle rb = Preferences.getBundle( context, InternationalizationManager.CORE_BUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( context, InternationalizationManager.CORE_BUNDLE );
 
         tempRoles = Arrays.stream(roles).filter(role -> role instanceof GroupPrincipal).map(Principal::getName).collect(Collectors.toList());
         if(tempRoles.isEmpty()) {
@@ -203,7 +203,7 @@ public class UserProfileTag extends WikiTagBase {
     public static String printRoles( final Context context ) {
         final Principal[] roles = context.getWikiSession().getRoles();
         final List< String > tempRoles;
-        final ResourceBundle rb = Preferences.getBundle( context, InternationalizationManager.CORE_BUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( context, InternationalizationManager.CORE_BUNDLE );
 
         tempRoles = Arrays.stream(roles).filter(role -> role instanceof Role).map(Principal::getName).collect(Collectors.toList());
         if(tempRoles.isEmpty()) {

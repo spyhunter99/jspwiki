@@ -40,7 +40,6 @@ import org.apache.wiki.api.plugin.InitializablePlugin;
 import org.apache.wiki.api.plugin.Plugin;
 import org.apache.wiki.modules.BaseModuleManager;
 import org.apache.wiki.modules.WikiModuleInfo;
-import org.apache.wiki.preferences.Preferences;
 import org.apache.wiki.util.ClassUtil;
 import org.apache.wiki.util.FileUtil;
 import org.apache.wiki.util.TextUtil;
@@ -65,6 +64,7 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  *  Manages plugin classes.  There exists a single instance of PluginManager
@@ -265,7 +265,7 @@ public class DefaultPluginManager extends BaseModuleManager implements PluginMan
             return "";
         }
 
-        final ResourceBundle rb = Preferences.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
         final boolean debug = TextUtil.isPositive( params.get( PARAM_DEBUG ) );
         try {
             //   Create...
@@ -383,7 +383,7 @@ public class DefaultPluginManager extends BaseModuleManager implements PluginMan
             return "";
         }
 
-        final ResourceBundle rb = Preferences.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
         final PatternMatcher matcher = new Perl5Matcher();
 
         try {

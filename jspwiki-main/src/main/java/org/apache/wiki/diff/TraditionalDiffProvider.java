@@ -44,6 +44,7 @@ import java.text.MessageFormat;
 import java.text.NumberFormat;
 import java.util.Properties;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 
 /**
@@ -130,7 +131,7 @@ public class TraditionalDiffProvider implements DiffProvider {
         private RevisionPrint( final Context ctx, final StringBuffer sb ) {
             m_result = sb;
             m_context = ctx;
-            m_rb = Preferences.getBundle( ctx, InternationalizationManager.CORE_BUNDLE );
+            m_rb = I18NUtil.getBundle( ctx, InternationalizationManager.CORE_BUNDLE );
         }
 
         @Override

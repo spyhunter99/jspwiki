@@ -39,6 +39,7 @@ import org.apache.wiki.variables.VariableManager;
 import java.io.IOException;
 import java.util.Map;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  *  Provides a table of contents.
@@ -151,7 +152,7 @@ public class TableOfContents implements Plugin, HeadingListener {
     public String execute( final Context context, final Map< String, String > params ) throws PluginException {
         final Engine engine = context.getEngine();
         final Page page = context.getPage();
-        final ResourceBundle rb = Preferences.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
 
         if( context.getVariable( VAR_ALREADY_PROCESSING ) != null ) {
             //return rb.getString("tableofcontents.title");

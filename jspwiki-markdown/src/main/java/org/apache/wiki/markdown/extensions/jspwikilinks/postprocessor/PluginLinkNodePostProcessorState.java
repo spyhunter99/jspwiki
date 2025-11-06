@@ -33,6 +33,7 @@ import org.apache.wiki.preferences.Preferences;
 
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 
 /**
@@ -77,7 +78,7 @@ public class PluginLinkNodePostProcessorState implements NodePostProcessorState<
         } catch( final PluginException e ) {
             LOG.info( wikiContext.getRealPage().getWiki() + " : " + wikiContext.getRealPage().getName() + " - Failed to insert plugin: " + e.getMessage() );
             if( !m_wysiwygEditorMode ) {
-                final ResourceBundle rbPlugin = Preferences.getBundle( wikiContext, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+                final ResourceBundle rbPlugin = I18NUtil.getBundle( wikiContext, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
                 NodePostProcessorStateCommonOperations.makeError( state, link, MessageFormat.format( rbPlugin.getString( "plugin.error.insertionfailed" ),
                                                                                                                          wikiContext.getRealPage().getWiki(),
                                                                                                                          wikiContext.getRealPage().getName(),
@@ -108,7 +109,7 @@ public class PluginLinkNodePostProcessorState implements NodePostProcessorState<
 
     void handleTableOfContentsPlugin(final NodeTracker state, final JSPWikiLink link) {
         if( !m_wysiwygEditorMode ) {
-            final ResourceBundle rb = Preferences.getBundle( wikiContext, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+            final ResourceBundle rb = I18NUtil.getBundle( wikiContext, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
             final WikiHtmlInline divToc = WikiHtmlInline.of( "<div class=\"toc\">\n" );
             final WikiHtmlInline divCollapseBox = WikiHtmlInline.of( "<div class=\"collapsebox\">\n" );
             final WikiHtmlInline divsClosing = WikiHtmlInline.of( "</div>\n</div>\n" );

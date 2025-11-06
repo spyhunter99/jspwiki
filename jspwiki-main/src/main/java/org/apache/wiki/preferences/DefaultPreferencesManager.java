@@ -16,14 +16,20 @@
 package org.apache.wiki.preferences;
 
 import com.google.gson.Gson;
+import jakarta.servlet.ServletRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.jsp.PageContext;
+import java.io.File;
 import java.io.IOException;
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.ResourceBundle;
 import java.util.TimeZone;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -33,11 +39,6 @@ import org.apache.wiki.api.core.Engine;
 import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.api.exceptions.NoRequiredPropertyException;
 import org.apache.wiki.api.providers.PreferenceProvider;
-import static org.apache.wiki.preferences.Preferences.COOKIE_USER_PREFS_NAME;
-import static org.apache.wiki.preferences.Preferences.SESSIONPREFS;
-import static org.apache.wiki.preferences.Preferences.getLocale;
-import static org.apache.wiki.preferences.Preferences.getPreference;
-import static org.apache.wiki.preferences.Preferences.reloadPreferences;
 import org.apache.wiki.util.HttpUtil;
 import org.apache.wiki.util.PropertyReader;
 import org.apache.wiki.util.TextUtil;
@@ -51,43 +52,63 @@ import org.apache.wiki.util.TextUtil;
  * file path to store a JSON file, one per user containing their user
  * preferences.
  */
-public class DefaultPreferencesManager extends HashMap< String, String> implements PreferenceProvider {
+public class DefaultPreferencesManager implements PreferenceProvider {
 
     private static final Logger LOG = LogManager.getLogger(DefaultPreferencesManager.class);
+    private File storageDir = null;
 
     @Override
     public void setupPreferences(PageContext pageContext) {
         reloadPreferences(pageContext);
     }
 
+    //reload from disk/defaults and apply to current page cookie response
     @Override
     public void reloadPreferences(PageContext pageContext) {
         final Properties props = PropertyReader.loadWebAppProps(pageContext.getServletContext());
         final Context ctx = Context.findContext(pageContext);
         final String dateFormat = ctx.getEngine().getManager(InternationalizationManager.class)
                 .get(InternationalizationManager.CORE_BUNDLE, getLocale(ctx), "common.datetimeformat");
-
-        this.put("SkinName", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.skinname", "PlainVanilla"));
-        this.put("DateFormat", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.dateformat", dateFormat));
-        this.put("TimeZone", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.timezone", TimeZone.getDefault().getID()));
-        this.put("Orientation", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.orientation", "fav-left"));
-        this.put("Sidebar", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.sidebar", "active"));
-        this.put("Layout", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.layout", "fluid"));
-        this.put("Language", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.language", getLocale(ctx).toString()));
-        this.put("SectionEditing", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.sectionediting", "true"));
-        this.put("Appearance", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.appearance", "true"));
+        Map<String, String> prefs = new HashMap<>();
+        prefs.put("SkinName", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.skinname", "PlainVanilla"));
+        prefs.put("DateFormat", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.dateformat", dateFormat));
+        prefs.put("TimeZone", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.timezone", TimeZone.getDefault().getID()));
+        prefs.put("Orientation", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.orientation", "fav-left"));
+        prefs.put("Sidebar", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.sidebar", "active"));
+        prefs.put("Layout", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.layout", "fluid"));
+        prefs.put("Language", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.language", getLocale(ctx).toString()));
+        prefs.put("SectionEditing", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.sectionediting", "true"));
+        prefs.put("Appearance", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.appearance", "true"));
 
         //editor cookies
-        this.put("autosuggest", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.autosuggest", "true"));
-        this.put("tabcompletion", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.tabcompletion", "true"));
-        this.put("smartpairs", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.smartpairs", "false"));
-        this.put("livepreview", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.livepreview", "true"));
-        this.put("previewcolumn", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.previewcolumn", "true"));
+        prefs.put("autosuggest", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.autosuggest", "true"));
+        prefs.put("tabcompletion", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.tabcompletion", "true"));
+        prefs.put("smartpairs", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.smartpairs", "false"));
+        prefs.put("livepreview", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.livepreview", "true"));
+        prefs.put("previewcolumn", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.previewcolumn", "true"));
 
         // FIXME: editormanager reads jspwiki.editor -- which of both properties should continue
-        this.put("editor", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.editor", "plain"));
-        parseJSONPreferences((HttpServletRequest) pageContext.getRequest());
+        prefs.put("editor", TextUtil.getStringProperty(props, "jspwiki.defaultprefs.template.editor", "plain"));
+        parseJSONPreferences(prefs, (HttpServletRequest) pageContext.getRequest());
         pageContext.getSession().setAttribute(SESSIONPREFS, this);
+        if (storageDir != null) {
+            ServletRequest request = pageContext.getRequest();
+            if (request instanceof HttpServletRequest req) {
+                Principal userPrincipal = req.getUserPrincipal();
+                if (userPrincipal != null) {
+                    String username = userPrincipal.getName();
+                    //translate the username via hash to get a save file name
+                    String safeName = DigestUtils.shaHex(username);
+                    File destination = new File(storageDir, safeName + ".json");
+                    try {
+                        FileUtils.writeStringToFile(destination, new Gson().toJson(this), "UTF-8");
+                    } catch (Exception ex) {
+                        LOG.warn("failed to persist user preferences for " + username, ex);
+                    }
+                }
+            }
+
+        }
     }
 
     /**
@@ -97,7 +118,7 @@ public class DefaultPreferencesManager extends HashMap< String, String> implemen
      * @param request
      * @param prefs The default hashmap of preferences
      */
-    private void parseJSONPreferences(final HttpServletRequest request) {
+    private void parseJSONPreferences(Map<String, String> prefs, final HttpServletRequest request) {
         final String prefVal = TextUtil.urlDecodeUTF8(HttpUtil.retrieveCookieValue(request, COOKIE_USER_PREFS_NAME));
         if (prefVal != null) {
             // Convert prefVal JSON to a generic hashmap
@@ -108,7 +129,7 @@ public class DefaultPreferencesManager extends HashMap< String, String> implemen
                 // Sometimes this is not a String as it comes from the Cookie set by Javascript
                 final Object value = map.get(key);
                 if (value != null) {
-                    put(key, value.toString());
+                    prefs.put(key, value.toString());
                 }
             }
         }
@@ -121,7 +142,7 @@ public class DefaultPreferencesManager extends HashMap< String, String> implemen
             return null;
         }
 
-        final Map<String,String> prefs = (Map<String,String>) request.getSession().getAttribute(SESSIONPREFS);
+        final Map<String, String> prefs = (Map<String, String>) request.getSession().getAttribute(SESSIONPREFS);
         if (prefs != null) {
             return prefs.get(name);
         }
@@ -131,7 +152,13 @@ public class DefaultPreferencesManager extends HashMap< String, String> implemen
 
     @Override
     public String getPreference(PageContext pageContext, String name) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+
+        final Map<String, String> prefs = (Map<String, String>) pageContext.getSession().getAttribute(SESSIONPREFS);
+        if (prefs != null) {
+            return prefs.get(name);
+        }
+
+        return null;
     }
 
     @Override
@@ -182,12 +209,23 @@ public class DefaultPreferencesManager extends HashMap< String, String> implemen
 
     @Override
     public void initialize(Engine engine, Properties properties) throws NoRequiredPropertyException, IOException {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        String path = properties.getProperty("jspwiki.userPref.storge");
+        if (path != null) {
+            File target = new File(path);
+            if (!target.exists()) {
+                if (!target.mkdirs()) {
+                    LOG.warn("unable to mkdirs at {} user preferences will not be persisted", target.getAbsolutePath());
+                }
+            }
+            storageDir = target;
+        } else {
+            throw new NoRequiredPropertyException("The Default User preference implementation now requires a persistence location", "jspwiki.userPref.storge");
+        }
     }
 
     @Override
     public String getProviderInfo() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        return "Default User Preference Manager (disk backed)";
     }
 
 }

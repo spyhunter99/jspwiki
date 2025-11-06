@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 
 /**
@@ -96,7 +97,7 @@ public class InsertPage implements Plugin {
         final int section         = TextUtil.parseIntParameter(params.get( PARAM_SECTION ), -1 );
         int maxlen                = TextUtil.parseIntParameter(params.get( PARAM_MAXLENGTH ), -1 );
 
-        final ResourceBundle rb = Preferences.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
 
         if( style == null ) {
             style = DEFAULT_STYLE;

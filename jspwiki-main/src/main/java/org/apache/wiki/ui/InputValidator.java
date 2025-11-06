@@ -27,6 +27,7 @@ import java.text.MessageFormat;
 import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  * Provides basic validation services for HTTP parameters. Three standard validators are provided: email address, identifier and
@@ -91,7 +92,7 @@ public final class InputValidator {
      */
     public boolean validateNotNull( final String input, final String label, final int type ) {
         if ( isBlank( input ) ) {
-            final ResourceBundle rb = Preferences.getBundle( m_context, InternationalizationManager.CORE_BUNDLE );
+            final ResourceBundle rb = I18NUtil.getBundle( m_context, InternationalizationManager.CORE_BUNDLE );
             m_session.addMessage( m_form, MessageFormat.format( rb.getString("validate.cantbenull"), label ) );
             return false;
         }
@@ -113,7 +114,7 @@ public final class InputValidator {
             return true;
         }
 
-        final ResourceBundle rb = Preferences.getBundle( m_context, InternationalizationManager.CORE_BUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( m_context, InternationalizationManager.CORE_BUNDLE );
 
         // Otherwise, see if it matches the pattern for the target type
         final Matcher matcher;

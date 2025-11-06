@@ -24,11 +24,11 @@ import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.pages.PageManager;
 import org.apache.wiki.parser.MarkupParser;
 import org.apache.wiki.parser.WikiDocument;
-import org.apache.wiki.preferences.Preferences;
 import org.apache.wiki.render.RenderingManager;
 import org.apache.wiki.util.TextUtil;
 
 import java.io.IOException;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  *  Writes the author name of the current page, including a link to that page, if that page exists.
@@ -67,7 +67,7 @@ public class AuthorTag extends WikiTagBase {
 
             pageContext.getOut().print( author );
         } else {
-            pageContext.getOut().print( Preferences.getBundle( m_wikiContext, InternationalizationManager.CORE_BUNDLE )
+            pageContext.getOut().print( I18NUtil.getBundle( m_wikiContext, InternationalizationManager.CORE_BUNDLE )
                                                    .getString( "common.unknownauthor" ) );
         }
 

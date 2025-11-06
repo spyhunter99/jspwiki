@@ -46,6 +46,8 @@ var WikiPreferences =
 			'prefLanguage':'Language',
 			'prefSectionEditing':'SectionEditing'
 		};
+                //saves the user preferences as a browser cookie
+                //next refresht to server will persist it
 		for(var el in prefs){
 			if($(el)) Wiki.prefs.set(prefs[el],$(el).getValue());
 		};

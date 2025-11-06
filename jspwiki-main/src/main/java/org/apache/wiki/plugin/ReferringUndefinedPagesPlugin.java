@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  *  <p>Lists all pages containing links to Undefined Pages (pages containing dead links).</p>
@@ -50,7 +51,7 @@ public class ReferringUndefinedPagesPlugin extends AbstractReferralPlugin {
 
     @Override
     public String execute( final Context context, final Map<String, String> params) throws PluginException {
-        final ResourceBundle rb = Preferences.getBundle(context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE);
+        final ResourceBundle rb = I18NUtil.getBundle(context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE);
         final ReferenceManager referenceManager = context.getEngine().getManager( ReferenceManager.class );
 
         final int items = TextUtil.parseIntParameter(params.get(PARAM_MAX), ALL_ITEMS);

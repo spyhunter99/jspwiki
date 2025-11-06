@@ -42,6 +42,8 @@ import java.util.MissingResourceException;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
+import org.apache.wiki.WikiContext;
+import org.apache.wiki.api.providers.PreferenceProvider;
 
 
 /**
@@ -78,11 +80,9 @@ public class Preferences extends HashMap< String,String > {
      *  @param pageContext The JSP PageContext.
      */
     public static void setupPreferences( final PageContext pageContext ) {
-        //HttpSession session = pageContext.getSession();
-        //if( session.getAttribute( SESSIONPREFS ) == null )
-        //{
-            reloadPreferences( pageContext );
-        //}
+        final WikiContext ctx = (WikiContext) Context.findContext( pageContext );
+        PreferenceProvider provider = ctx.getEngine().getManager(PreferenceProvider.class);
+        provider .reloadPreferences(pageContext);
     }
 
     /**
@@ -94,58 +94,14 @@ public class Preferences extends HashMap< String,String > {
     //        with which the user happened to first arrive to the site with.  This, unfortunately, means that even if the user changes e.g.
     //        language preferences (like in a web cafe), the old preferences still remain in a site cookie.
     public static void reloadPreferences( final PageContext pageContext ) {
-        final Preferences prefs = new Preferences();
-        final Properties props = PropertyReader.loadWebAppProps( pageContext.getServletContext() );
-        final Context ctx = Context.findContext( pageContext );
-        final String dateFormat = ctx.getEngine().getManager( InternationalizationManager.class )
-                                           .get( InternationalizationManager.CORE_BUNDLE, getLocale( ctx ), "common.datetimeformat" );
-
-        prefs.put("SkinName", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.skinname", "PlainVanilla" ) );
-        prefs.put("DateFormat", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.dateformat", dateFormat ) );
-        prefs.put("TimeZone", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.timezone", TimeZone.getDefault().getID() ) );
-        prefs.put("Orientation", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.orientation", "fav-left" ) );
-        prefs.put("Sidebar", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.sidebar", "active" ) );
-        prefs.put("Layout", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.layout", "fluid" ) );
-        prefs.put("Language", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.language", getLocale( ctx ).toString() ) );
-        prefs.put("SectionEditing", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.sectionediting", "true" ) );
-        prefs.put("Appearance", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.appearance", "true" ) );
-
-        //editor cookies
-        prefs.put("autosuggest", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.autosuggest", "true" ) );
-        prefs.put("tabcompletion", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.tabcompletion", "true" ) );
-        prefs.put("smartpairs", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.smartpairs", "false" ) );
-        prefs.put("livepreview", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.livepreview", "true" ) );
-        prefs.put("previewcolumn", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.previewcolumn", "true" ) );
-
-
-        // FIXME: editormanager reads jspwiki.editor -- which of both properties should continue
-        prefs.put("editor", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.editor", "plain" ) );
-        parseJSONPreferences( (HttpServletRequest) pageContext.getRequest(), prefs );
-        pageContext.getSession().setAttribute( SESSIONPREFS, prefs );
+        final WikiContext ctx = (WikiContext) Context.findContext( pageContext );
+        PreferenceProvider provider = ctx.getEngine().getManager(PreferenceProvider.class);
+        provider .reloadPreferences(pageContext);
+        
     }
 
 
-    /**
-     * Parses new-style preferences stored as JSON objects and stores them in the session.  Everything in the cookie is stored.
-     *
-     * @param request
-     * @param prefs The default hashmap of preferences
-     */
-	private static void parseJSONPreferences( final HttpServletRequest request, final Preferences prefs ) {
-        final String prefVal = TextUtil.urlDecodeUTF8( HttpUtil.retrieveCookieValue( request, COOKIE_USER_PREFS_NAME ) );
-        if( prefVal != null ) {
-            // Convert prefVal JSON to a generic hashmap
-            @SuppressWarnings( "unchecked" ) final Map< String, String > map = new Gson().fromJson( prefVal, Map.class );
-            for( String key : map.keySet() ) {
-                key = TextUtil.replaceEntities( key );
-                // Sometimes this is not a String as it comes from the Cookie set by Javascript
-                final Object value = map.get( key );
-                if( value != null ) {
-                    prefs.put( key, value.toString() );
-                }
-            }
-        }
-    }
+    
 
     /**
      *  Returns a preference value programmatically.
@@ -156,17 +112,9 @@ public class Preferences extends HashMap< String,String > {
      *  @return the preference value
      */
     public static String getPreference( final Context wikiContext, final String name ) {
-        final HttpServletRequest request = wikiContext.getHttpRequest();
-        if ( request == null ) {
-            return null;
-        }
-
-        final Preferences prefs = (Preferences)request.getSession().getAttribute( SESSIONPREFS );
-        if( prefs != null ) {
-            return prefs.get( name );
-        }
-
-        return null;
+        PreferenceProvider provider = wikiContext.getEngine().getManager(PreferenceProvider.class);
+        return provider.getPreference(wikiContext, name);
+        
     }
 
     /**
@@ -178,6 +126,7 @@ public class Preferences extends HashMap< String,String > {
      *  @return the preference value
      */
     public static String getPreference( final PageContext pageContext, final String name ) {
+        
         final Preferences prefs = ( Preferences )pageContext.getSession().getAttribute( SESSIONPREFS );
         if( prefs != null ) {
             return prefs.get( name );

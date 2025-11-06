@@ -39,6 +39,7 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.Vector;
+import org.apache.wiki.i18n.I18NUtil;
 
 
 /**
@@ -277,7 +278,7 @@ public interface TemplateManager extends ModuleManager {
     static String getJSLocalizedStrings( final Context context ) {
         final StringBuilder sb = new StringBuilder();
         sb.append( "var LocalizedStrings = {\n");
-        final ResourceBundle rb = Preferences.getBundle( context, InternationalizationManager.DEF_TEMPLATE );
+        final ResourceBundle rb = I18NUtil.getBundle( context, InternationalizationManager.DEF_TEMPLATE );
         boolean first = true;
 
         for( final Enumeration< String > en = rb.getKeys(); en.hasMoreElements(); ) {

@@ -31,6 +31,7 @@ import org.apache.wiki.util.TextUtil;
 import java.text.MessageFormat;
 import java.util.Map;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  *  Opens a WikiForm.
@@ -80,7 +81,7 @@ public class FormOpen extends FormElement {
      */
     @Override
     public String execute( final Context ctx, final Map< String, String > params ) throws PluginException {
-        final ResourceBundle rb = Preferences.getBundle( ctx, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( ctx, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
         final String formName = TextUtil.replaceEntities( params.get( PARAM_FORM ) );
         if( formName == null ) {
             throw new PluginException( MessageFormat.format( rb.getString( "formopen.missingparam" ), PARAM_FORM ) );

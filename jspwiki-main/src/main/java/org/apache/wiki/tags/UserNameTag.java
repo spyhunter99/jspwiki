@@ -29,6 +29,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.regex.Pattern;
+import org.apache.wiki.i18n.I18NUtil;
 
 
 /**
@@ -56,7 +57,7 @@ public class UserNameTag extends WikiTagBase {
             if( VALID_USER_NAME_PATTERN.matcher( user.getName() ).matches() ) {
                 pageContext.getOut().print( TextUtil.replaceEntities( user.getName() ) );
             } else {
-                pageContext.getOut().print( Preferences.getBundle( m_wikiContext, InternationalizationManager.CORE_BUNDLE )
+                pageContext.getOut().print( I18NUtil.getBundle( m_wikiContext, InternationalizationManager.CORE_BUNDLE )
                                                        .getString( "security.user.fullname.invalid" ) );
             }
         }

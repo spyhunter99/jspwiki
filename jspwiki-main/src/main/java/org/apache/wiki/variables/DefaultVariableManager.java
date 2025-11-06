@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
+import org.apache.wiki.i18n.I18NUtil;
 
 
 /**
@@ -358,12 +359,12 @@ public class DefaultVariableManager implements VariableManager {
 
         public String getLoginstatus() {
             final Session session = m_context.getWikiSession();
-            return Preferences.getBundle( m_context, InternationalizationManager.CORE_BUNDLE ).getString( "varmgr." + session.getStatus() );
+            return I18NUtil.getBundle( m_context, InternationalizationManager.CORE_BUNDLE ).getString( "varmgr." + session.getStatus() );
         }
 
         public String getUsername() {
             final Principal wup = m_context.getCurrentUser();
-            final ResourceBundle rb = Preferences.getBundle( m_context, InternationalizationManager.CORE_BUNDLE );
+            final ResourceBundle rb = I18NUtil.getBundle( m_context, InternationalizationManager.CORE_BUNDLE );
             return wup != null ? wup.getName() : rb.getString( "varmgr.not.logged.in" );
         }
 

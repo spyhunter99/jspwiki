@@ -32,6 +32,7 @@ import org.apache.wiki.util.TextUtil;
 import java.text.MessageFormat;
 import java.util.Map;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  */
@@ -61,7 +62,7 @@ public class FormOutput extends FormElement {
         if( ctx.getHttpRequest() == null ) {
             return "";
         }
-        final ResourceBundle rb = Preferences.getBundle( ctx, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( ctx, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
 
         // If we are NOT here due to this form being submitted, we do nothing.
         // The submitted form MUST have parameter 'formname' equal to the name

@@ -25,6 +25,7 @@ import org.apache.wiki.preferences.Preferences;
 
 import java.util.Map;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  *  Closes a WikiForm.
@@ -43,7 +44,7 @@ public class FormClose extends FormElement {
         // Don't render if no error and error-only-rendering is on.
         final FormInfo info = getFormInfo( ctx );
         if( info != null && info.hide() ) {
-            final ResourceBundle rb = Preferences.getBundle( ctx, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+            final ResourceBundle rb = I18NUtil.getBundle( ctx, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
             return "<p>" + rb.getString( "formclose.noneedtoshow" ) + "</p>";
         }
 

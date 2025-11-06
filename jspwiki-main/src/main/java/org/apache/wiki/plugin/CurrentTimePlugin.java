@@ -29,6 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  *  Just displays the current date and time.
@@ -63,7 +64,7 @@ public class CurrentTimePlugin implements Plugin {
             return TextUtil.replaceEntities( fmt.format( d ) );
 
         } catch( final IllegalArgumentException e ) {
-            final ResourceBundle rb = Preferences.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+            final ResourceBundle rb = I18NUtil.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
             throw new PluginException( rb.getString( "currenttimeplugin.badformat" ) + e.getMessage() );
         }
     }

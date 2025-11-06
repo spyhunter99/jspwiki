@@ -64,6 +64,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.wiki.i18n.I18NUtil;
 
 
 /**
@@ -504,7 +505,7 @@ public class AttachmentServlet extends HttpServlet {
         } catch( final WikiException e ) {
             // this is a kludge, the exception that is caught here contains the i18n key
             // here we have the context available, so we can internationalize it properly :
-            throw new RedirectException (Preferences.getBundle( context, InternationalizationManager.CORE_BUNDLE )
+            throw new RedirectException (I18NUtil.getBundle( context, InternationalizationManager.CORE_BUNDLE )
                     .getString( e.getMessage() ), errorPage );
         }
 
@@ -562,7 +563,7 @@ public class AttachmentServlet extends HttpServlet {
             } catch( final ProviderException pe ) {
                 // this is a kludge, the exception that is caught here contains the i18n key
                 // here we have the context available, so we can internationalize it properly :
-                throw new ProviderException( Preferences.getBundle( context, InternationalizationManager.CORE_BUNDLE ).getString( pe.getMessage() ) );
+                throw new ProviderException( I18NUtil.getBundle( context, InternationalizationManager.CORE_BUNDLE ).getString( pe.getMessage() ) );
             }
 
             LOG.info( "User " + user + " uploaded attachment to " + parentPage + " called "+filename+", size " + att.getSize() );

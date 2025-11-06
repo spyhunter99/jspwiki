@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  *  Provides a handler for bug reports.  Still under construction.
@@ -83,7 +84,7 @@ public class BugReportHandler implements Plugin {
         String version = params.get( PARAM_VERSION );
         String submitter = null;
         final SimpleDateFormat format = new SimpleDateFormat( DEFAULT_DATEFORMAT );
-        final ResourceBundle rb = Preferences.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
         final Principal wup = context.getCurrentUser();
 
         if( wup != null ) {

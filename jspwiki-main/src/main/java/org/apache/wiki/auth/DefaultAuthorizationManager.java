@@ -42,7 +42,6 @@ import org.apache.wiki.event.WikiEventManager;
 import org.apache.wiki.event.WikiSecurityEvent;
 import org.apache.wiki.api.core.InternationalizationManager;
 import org.apache.wiki.pages.PageManager;
-import org.apache.wiki.preferences.Preferences;
 import org.apache.wiki.util.ClassUtil;
 import org.freshcookies.security.policy.LocalPolicy;
 
@@ -64,6 +63,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.WeakHashMap;
+import org.apache.wiki.i18n.I18NUtil;
 
 
 /**
@@ -206,7 +206,7 @@ public class DefaultAuthorizationManager implements AuthorizationManager {
 
         // If access not allowed, redirect
         if( !allowed && redirect ) {
-            final ResourceBundle rb = Preferences.getBundle( context, InternationalizationManager.CORE_BUNDLE );
+            final ResourceBundle rb = I18NUtil.getBundle( context, InternationalizationManager.CORE_BUNDLE );
             final Principal currentUser  = context.getWikiSession().getUserPrincipal();
             final String pageurl = context.getPage().getName();
             if( context.getWikiSession().isAuthenticated() ) {

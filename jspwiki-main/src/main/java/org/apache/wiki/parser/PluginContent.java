@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 
 /**
@@ -173,7 +174,7 @@ public class PluginContent extends Text implements PluginElement {
                 result = "";
             } else {
                 // LOG.info("Failed to execute plugin",e);
-                final ResourceBundle rb = Preferences.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
+                final ResourceBundle rb = I18NUtil.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
                 result = MarkupParser.makeError( MessageFormat.format( rb.getString( "plugin.error.insertionfailed" ), 
                 		                                               context.getRealPage().getWiki(), 
                 		                                               context.getRealPage().getName(), 
@@ -189,7 +190,7 @@ public class PluginContent extends Text implements PluginElement {
     public void executeParse( final Context context ) throws PluginException {
         final PluginManager pm = context.getEngine().getManager( PluginManager.class );
         if( pm.pluginsEnabled() ) {
-            final ResourceBundle rb = Preferences.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE);
+            final ResourceBundle rb = I18NUtil.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE);
             final Map< String, String > params = getParameters();
             final Plugin plugin = pm.newWikiPlugin( getPluginName(), rb );
             try {

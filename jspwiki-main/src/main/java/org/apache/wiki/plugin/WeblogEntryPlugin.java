@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  * Builds a simple weblog.
@@ -92,7 +93,7 @@ public class WeblogEntryPlugin implements Plugin {
      */
     @Override
     public String execute( final Context context, final Map< String, String > params ) throws PluginException {
-        final ResourceBundle rb = Preferences.getBundle(context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE);
+        final ResourceBundle rb = I18NUtil.getBundle(context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE);
         final Engine engine = context.getEngine();
 
         String weblogName = params.get(PARAM_BLOGNAME);

@@ -69,6 +69,7 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.WeakHashMap;
+import org.apache.wiki.i18n.I18NUtil;
 
 
 /**
@@ -315,7 +316,7 @@ public class DefaultUserManager implements UserManager {
     public void validateProfile( final Context context, final UserProfile profile ) {
         final Session session = context.getWikiSession();
         final InputValidator validator = new InputValidator( SESSION_MESSAGES, context );
-        final ResourceBundle rb = Preferences.getBundle( context, InternationalizationManager.CORE_BUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( context, InternationalizationManager.CORE_BUNDLE );
 
         //  Query the SpamFilter first
         final FilterManager fm = m_engine.getManager( FilterManager.class );

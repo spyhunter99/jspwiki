@@ -21,13 +21,13 @@ package org.apache.wiki.tags;
 import org.apache.wiki.api.core.ContextEnum;
 import org.apache.wiki.api.core.Engine;
 import org.apache.wiki.api.core.InternationalizationManager;
-import org.apache.wiki.preferences.Preferences;
 import org.apache.wiki.rss.RSSGenerator;
 
 import jakarta.servlet.jsp.JspWriter;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
+import org.apache.wiki.i18n.I18NUtil;
 
 /**
  *  Writes an image link to a JSPWiki RSS file.  If RSS generation has
@@ -89,7 +89,7 @@ public class RSSImageLinkTag
     public final int doWikiStartTag() throws IOException {
         final Engine engine = m_wikiContext.getEngine();
         final JspWriter out = pageContext.getOut();
-        final ResourceBundle rb = Preferences.getBundle( m_wikiContext, InternationalizationManager.CORE_BUNDLE );
+        final ResourceBundle rb = I18NUtil.getBundle( m_wikiContext, InternationalizationManager.CORE_BUNDLE );
         if( engine.getManager( RSSGenerator.class ) != null && engine.getManager( RSSGenerator.class ).isEnabled() ) {
             if( RSSGenerator.MODE_FULL.equals(m_mode) ) {
                 final String rssURL = engine.getGlobalRSSURL();
