@@ -53,14 +53,14 @@
   <user username="both" password="<must-be-changed>" roles="tomcat,role1"/>
   <user username="role1" password="<must-be-changed>" roles="role1"/>
 -->
-<role rolename="Admin"/>
-<role rolename="Authenticated"/>
+
+<role rolename="wikiadmin"/>
 <role rolename="wikiuser"/>
 <role rolename="wikispecialuser"/>
 <role rolename="wiki-data-normal"/>
 <role rolename="wiki-data-protected"/>
 
-<user username="jspadmin" password="changeit" roles="Admin,wikiuser,wiki-data-normal,wiki-data-protected,Authenticated"/>
-<user username="jspuser1" password="changeit" roles="wikiuser,wiki-data-normal,Authenticated"/>
+<user username="jspadmin" password="changeit" roles="wikiadmin,wikiuser,wiki-data-normal,wiki-data-protected"/>
+<user username="jspuser1" password="changeit" roles="wikiuser,wiki-data-normal"/>
 
 </tomcat-users>
