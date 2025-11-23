@@ -22,12 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.oro.text.GlobCompiler;
-import org.apache.oro.text.regex.MalformedPatternException;
-import org.apache.oro.text.regex.Pattern;
-import org.apache.oro.text.regex.PatternCompiler;
-import org.apache.oro.text.regex.PatternMatcher;
-import org.apache.oro.text.regex.Perl5Matcher;
 import org.apache.wiki.WikiBackgroundThread;
 import org.apache.wiki.api.core.Context;
 import org.apache.wiki.api.core.ContextEnum;
@@ -61,6 +55,8 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 
 /**
@@ -312,7 +308,6 @@ public class PageViewPlugin extends AbstractReferralPlugin implements Plugin, In
                 final Pattern[] exclude = compileGlobs( PARAM_EXCLUDE, params.get( PARAM_EXCLUDE ) );
                 final Pattern[] include = compileGlobs( PARAM_INCLUDE, params.get( PARAM_INCLUDE ) );
                 final Pattern[] refer = compileGlobs( PARAM_REFER, params.get( PARAM_REFER ) );
-                final PatternMatcher matcher = (null != exclude || null != include || null != refer) ? new Perl5Matcher() : null;
                 boolean increment = false;
 
                 // increment counter?
@@ -335,7 +330,7 @@ public class PageViewPlugin extends AbstractReferralPlugin implements Plugin, In
                     for( final String name : refManager.findCreated() ) {
                         boolean use = false;
                         for( int n = 0; !use && n < refer.length; n++ ) {
-                            use = matcher.matches( name, refer[ n ] );
+                            use = refer[ n ].matcher(name).matches();
                         }
 
                         if( use ) {
@@ -429,14 +424,14 @@ public class PageViewPlugin extends AbstractReferralPlugin implements Plugin, In
                                 use = false;
 
                                 for( int n = 0; !use && n < include.length; n++ ) {
-                                    use = matcher.matches( name, include[ n ] );
+                                    use = include[ n ].matcher(name).matches();
                                 }
                             }
 
                             // did we specify what pages to exclude?
                             if( use && null != exclude ) {
                                 for( int n = 0; use && n < exclude.length; n++ ) {
-                                    use = !matcher.matches( name, exclude[ n ] );
+                                    use = !exclude[ n ].matcher( name ) .matches();
                                 }
                             }
 
@@ -471,14 +466,13 @@ public class PageViewPlugin extends AbstractReferralPlugin implements Plugin, In
             Pattern[] result = null;
             if( value != null && !value.isEmpty() && !STR_GLOBSTAR.equals( value ) ) {
                 try {
-                    final PatternCompiler pc = new GlobCompiler();
                     final String[] ptrns = StringUtils.split( value, STR_COMMA );
                     result = new Pattern[ ptrns.length ];
 
                     for( int n = 0; n < ptrns.length; n++ ) {
-                        result[ n ] = pc.compile( ptrns[ n ] );
+                        result[ n ] = Pattern.compile( ptrns[ n ] );
                     }
-                } catch( final MalformedPatternException e ) {
+                } catch( final PatternSyntaxException e ) {
                     throw new PluginException( "Parameter " + name + " has a malformed pattern: " + e.getMessage() );
                 }
             }

@@ -22,12 +22,6 @@ package org.apache.wiki.plugin;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.oro.text.GlobCompiler;
-import org.apache.oro.text.regex.MalformedPatternException;
-import org.apache.oro.text.regex.Pattern;
-import org.apache.oro.text.regex.PatternCompiler;
-import org.apache.oro.text.regex.PatternMatcher;
-import org.apache.oro.text.regex.Perl5Matcher;
 import org.apache.wiki.api.core.Context;
 import org.apache.wiki.api.exceptions.PluginException;
 import org.apache.wiki.api.plugin.Plugin;
@@ -44,6 +38,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  *  Denounces a link by removing it from any search engine.
@@ -85,7 +81,6 @@ public class Denounce implements Plugin {
      */
     static {
         try {
-            final PatternCompiler compiler = new GlobCompiler();
             final ClassLoader loader = Denounce.class.getClassLoader();
             final InputStream in = loader.getResourceAsStream( PROPERTYFILE );
             if( in == null ) {
@@ -102,13 +97,13 @@ public class Denounce implements Plugin {
 
                 try {
                     if( name.startsWith( PROP_REFERERPATTERN ) ) {
-                        c_refererPatterns.add( compiler.compile( props.getProperty(name) ) );
+                        c_refererPatterns.add( Pattern.compile( props.getProperty(name) ) );
                     } else if( name.startsWith( PROP_AGENTPATTERN ) ) {
-                        c_agentPatterns.add( compiler.compile( props.getProperty(name) ) );
+                        c_agentPatterns.add( Pattern.compile( props.getProperty(name) ) );
                     } else if( name.startsWith( PROP_HOSTPATTERN ) ) {
-                        c_hostPatterns.add( compiler.compile( props.getProperty(name) ) );
+                        c_hostPatterns.add( Pattern.compile( props.getProperty(name) ) );
                     }
-                } catch( final MalformedPatternException ex ) {
+                } catch( final PatternSyntaxException ex ) {
                     LOG.error( "Malformed URL pattern in "+PROPERTYFILE+": "+props.getProperty(name), ex );
                 }
             }
@@ -174,8 +169,7 @@ public class Denounce implements Plugin {
      *  Returns true, if the path is found among the referers.
      */
     private boolean matchPattern( final List< Pattern > list, final String path ) {
-        final PatternMatcher matcher = new Perl5Matcher();
-        return list.stream().anyMatch(pattern -> matcher.matches(path, pattern));
+        return list.stream().anyMatch(pattern -> pattern.matcher(path).matches());
     }
 
     private boolean matchHeaders( final HttpServletRequest request ) {

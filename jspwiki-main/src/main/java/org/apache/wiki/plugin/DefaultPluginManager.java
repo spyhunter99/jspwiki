@@ -23,13 +23,6 @@ import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.oro.text.regex.MalformedPatternException;
-import org.apache.oro.text.regex.MatchResult;
-import org.apache.oro.text.regex.Pattern;
-import org.apache.oro.text.regex.PatternCompiler;
-import org.apache.oro.text.regex.PatternMatcher;
-import org.apache.oro.text.regex.Perl5Compiler;
-import org.apache.oro.text.regex.Perl5Matcher;
 import org.apache.wiki.InternalWikiException;
 import org.apache.wiki.ajax.WikiAjaxDispatcherServlet;
 import org.apache.wiki.ajax.WikiAjaxServlet;
@@ -67,6 +60,9 @@ import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  *  Manages plugin classes.  There exists a single instance of PluginManager
@@ -203,10 +199,9 @@ public class DefaultPluginManager extends BaseModuleManager implements PluginMan
         m_searchPath.add( DEFAULT_PACKAGE );
         m_searchPath.add( DEFAULT_FORMS_PACKAGE );
 
-        final PatternCompiler compiler = new Perl5Compiler();
         try {
-            m_pluginPattern = compiler.compile( PLUGIN_INSERT_PATTERN );
-        } catch( final MalformedPatternException e ) {
+            m_pluginPattern = Pattern.compile( PLUGIN_INSERT_PATTERN );
+        } catch( final PatternSyntaxException e ) {
             LOG.fatal( "Internal error: someone messed with pluginmanager patterns.", e );
             throw new InternalWikiException( "PluginManager patterns are broken" , e );
         }
@@ -390,14 +385,14 @@ public class DefaultPluginManager extends BaseModuleManager implements PluginMan
         }
 
         final ResourceBundle rb = Preferences.getBundle( context, Plugin.CORE_PLUGINS_RESOURCEBUNDLE );
-        final PatternMatcher matcher = new Perl5Matcher();
+        
 
         try {
-            if( matcher.contains( commandline, m_pluginPattern ) ) {
-                final MatchResult res = matcher.getMatch();
-                final String plugin = res.group( 2 );
+            Matcher matcher = m_pluginPattern.matcher( commandline);
+            if ( matcher.matches() ) {
+                final String plugin = matcher.group( 2 );
                 final int endIndex = commandline.length() - ( commandline.charAt( commandline.length() - 1 ) == '}' ? 1 : 0 );
-                final String args = commandline.substring( res.endOffset( 0 ), endIndex );
+                final String args = commandline.substring( matcher.end( 0 ), endIndex );
                 final Map< String, String > arglist = parseArgs( args );
                 return execute( context, plugin, arglist );
             }

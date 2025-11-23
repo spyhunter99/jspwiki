@@ -168,11 +168,6 @@
         </dependency>
 
         <dependency>
-            <groupId>oro</groupId>
-            <artifactId>oro</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>xmlrpc</groupId>
             <artifactId>xmlrpc</artifactId>
         </dependency>

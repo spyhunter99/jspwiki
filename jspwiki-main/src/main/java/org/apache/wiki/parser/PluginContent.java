@@ -20,9 +20,6 @@ package org.apache.wiki.parser;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.oro.text.regex.MatchResult;
-import org.apache.oro.text.regex.PatternMatcher;
-import org.apache.oro.text.regex.Perl5Matcher;
 import org.apache.wiki.InternalWikiException;
 import org.apache.wiki.api.core.Context;
 import org.apache.wiki.api.core.Engine;
@@ -41,6 +38,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.ResourceBundle;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -213,14 +212,16 @@ public class PluginContent extends Text implements PluginElement {
      * @since 2.10.0
      */
     public static PluginContent parsePluginLine( final Context context, final String commandline, final int pos ) throws PluginException {
-        final PatternMatcher matcher = new Perl5Matcher();
+        
 
         try {
             final PluginManager pm = context.getEngine().getManager( PluginManager.class );
-            if( matcher.contains( commandline, pm.getPluginPattern() ) ) {
-                final MatchResult res = matcher.getMatch();
-                final String plugin = res.group( 2 );
-                final String args = commandline.substring( res.endOffset( 0 ),
+            final Pattern pattern = pm.getPluginPattern();
+            Matcher matcher = pattern.matcher(commandline);
+            if( matcher.matches()) {
+                
+                final String plugin = matcher.group( 2 );
+                final String args = commandline.substring( matcher.end( 0 ),
                                                            commandline.length() - ( commandline.charAt( commandline.length() - 1 ) == '}' ? 1 : 0 ) );
                 final Map< String, String > arglist = pm.parseArgs( args );
 
