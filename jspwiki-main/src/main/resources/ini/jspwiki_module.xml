@@ -145,6 +145,10 @@
         <author>ASF</author>
         <minVersion>2.4</minVersion>
     </plugin>
+    <plugin class="org.apache.wiki.plugin.DiagramPlugin">
+        <author>ASF</author>
+        <minVersion>2.10</minVersion>
+    </plugin>
 
     <filter class="org.apache.wiki.filters.SpamFilter">
         <author>Janne Jalkanen</author>
