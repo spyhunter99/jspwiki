@@ -45,7 +45,9 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 import org.apache.wiki.i18n.I18NUtil;
 
 
@@ -77,6 +79,13 @@ public class RecentChangesPlugin extends AbstractReferralPlugin implements Plugi
     public static final String DEFAULT_DATE_FORMAT ="dd.MM.yyyy";
 
 
+    @Override
+    public String getDisplayName(Locale locale) {
+        final ResourceBundle rb = ResourceBundle.getBundle(PluginManager.PLUGIN_I18N_RESOURCE, locale);
+        return rb.getString(this.getClass().getSimpleName());
+    }
+   
+    
     /**
      * {@inheritDoc}
      */

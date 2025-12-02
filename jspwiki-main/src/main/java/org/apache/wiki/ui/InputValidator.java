@@ -27,6 +27,7 @@ import java.text.MessageFormat;
 import java.util.ResourceBundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.commons.validator.routines.EmailValidator;
 import org.apache.wiki.i18n.I18NUtil;
 
 /**
@@ -50,7 +51,6 @@ public final class InputValidator {
      * @since 2.4.82
      */
     static final Pattern ID_PATTERN     = Pattern.compile( "[\\x00\\r\\n\\x0f\"'<>;&\\xff{}]" );
-    static final Pattern EMAIL_PATTERN  = Pattern.compile( "^[0-9a-zA-Z-_.+]+@([0-9a-zA-Z-_]+\\.)+[a-zA-Z]+$" );
     static final Pattern UNSAFE_PATTERN = Pattern.compile( "[\\x00\\r\\n\\x0f\"':<>\\[\\];#&@\\xff{}$%\\\\]" );
 
     private final String m_form;
@@ -131,8 +131,7 @@ public final class InputValidator {
             }
             return valid;
         case EMAIL:
-            matcher = EMAIL_PATTERN.matcher( input );
-            valid = matcher.matches();
+            valid = EmailValidator.getInstance().isValid(input);
             if ( !valid ) {
                 final Object[] args = { label };
                 m_session.addMessage( m_form, MessageFormat.format( rb.getString( "validate.invalidemail" ), args ) );

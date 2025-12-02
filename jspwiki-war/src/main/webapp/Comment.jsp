@@ -72,9 +72,9 @@
         return;
     }
     String pagereq = wikiContext.getName();
-
-    ResourceBundle rb = Preferences.getBundle( wikiContext, "CoreResources" );
     Session wikiSession = wikiContext.getWikiSession();
+    final ResourceBundle rb = ResourceBundle.getBundle( InternationalizationManager.CORE_BUNDLE, wikiSession.getLocale() );
+    
     String storedUser = wikiSession.getUserPrincipal().getName();
     String commentedBy = storedUser;
 
@@ -182,7 +182,7 @@
         //  Build comment part
         //
         StringBuffer pageText = new StringBuffer( wiki.getManager( PageManager.class ).getPureText( wikipage ));
-
+        
         log.debug("Page initial contents are "+pageText.length()+" chars");
 
         //
@@ -223,7 +223,7 @@
                 response.addCookie( linkcookie );
             }
 
-            CookieAssertionLoginModule.setUserCookie( response, author );
+            CookieAssertionLoginModule.setUserCookie( pageContext, response, author );
         } else {
             session.removeAttribute("link");
             session.removeAttribute("author");
@@ -237,7 +237,7 @@
             response.sendRedirect( redirect );
             return;
         } catch( RedirectException e ) {
-            session.setAttribute( VariableManager.VAR_MSG, e.getMessage() );
+            wikiSession.addMessage( VariableManager.VAR_MSG, rb.getString("operation.failed") );
             response.sendRedirect( e.getRedirect() );
             return;
         }

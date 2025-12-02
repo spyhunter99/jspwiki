@@ -119,7 +119,6 @@ public class Preferences extends HashMap< String,String > {
 
     /**
      *  Returns a preference value programmatically.
-     *  FIXME
      *
      *  @param pageContext
      *  @param name
@@ -252,6 +251,7 @@ public class Preferences extends HashMap< String,String > {
 
             return fmt;
         } catch( final Exception e ) {
+            LOG.debug(e.getMessage(), e);
             return null;
         }
     }
