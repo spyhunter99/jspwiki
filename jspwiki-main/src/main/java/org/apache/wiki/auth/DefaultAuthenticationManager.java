@@ -18,6 +18,8 @@
  */
 package org.apache.wiki.auth;
 
+import com.sun.mail.iap.Response;
+import jakarta.servlet.http.Cookie;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.wiki.api.core.Engine;
@@ -45,6 +47,7 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.security.Principal;
 import java.util.Collections;
@@ -58,6 +61,7 @@ import org.apache.wiki.WikiContext;
 import org.apache.wiki.api.core.Context;
 import org.apache.wiki.auth.user.DefaultUserProfile;
 import org.apache.wiki.auth.user.UserProfile;
+import org.apache.wiki.preferences.Preferences;
 
 
 /**
@@ -159,7 +163,7 @@ public class DefaultAuthenticationManager implements AuthenticationManager {
      * {@inheritDoc}
      */
     @Override
-    public boolean login( final HttpServletRequest request ) throws WikiSecurityException {
+    public boolean login( final HttpServletRequest request, HttpServletResponse response ) throws WikiSecurityException {
         final HttpSession httpSession = request.getSession();
         final Session session = SessionMonitor.getInstance( m_engine ).find( httpSession );
         final AuthenticationManager authenticationMgr = m_engine.getManager( AuthenticationManager.class );
@@ -223,6 +227,8 @@ public class DefaultAuthenticationManager implements AuthenticationManager {
                         profile.getAttributes().put(UserProfile.ATTR_PREVIOUS_LOGIN_IP, oldIp);
                     }
                     profile.getAttributes().put(UserProfile.ATTR_CURRENT_LOGIN_IP, request.getRemoteAddr());
+                    Preferences.apply(m_engine, profile, request, response);
+                    
                     profile.getAttributes().put(UserProfile.ATTR_CURRENT_LOGIN_TIMESTAMP, System.currentTimeMillis());
                     try {
                         mgr.setUserProfile(new WikiContext(m_engine, request, ""), profile);

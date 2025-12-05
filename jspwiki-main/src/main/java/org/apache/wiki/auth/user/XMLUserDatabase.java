@@ -47,7 +47,9 @@ import java.security.Principal;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.SortedSet;
@@ -471,43 +473,8 @@ public class XMLUserDatabase extends AbstractUserDatabase {
             }
             if( userAttribute.equals( index ) ) {
                 final UserProfile profile = newProfile();
-
-                // Parse basic attributes
-                profile.setUid( user.getAttribute( UID ) );
-                if( profile.getUid() == null || profile.getUid().isEmpty() ) {
-                    profile.setUid( generateUid( this ) );
-                }
-                profile.setLoginName( user.getAttribute( LOGIN_NAME ) );
-                profile.setFullname( user.getAttribute( FULL_NAME ) );
-                profile.setPassword( user.getAttribute( PASSWORD ) );
-                profile.setEmail( user.getAttribute( EMAIL ) );
-
-                // Get created/modified timestamps
-                final String created = user.getAttribute( CREATED );
-                final String modified = user.getAttribute( LAST_MODIFIED );
-                profile.setCreated( parseDate( profile, created ) );
-                profile.setLastModified( parseDate( profile, modified ) );
-
-                // Is the profile locked?
-                final String lockExpiry = user.getAttribute( LOCK_EXPIRY );
-                if( StringUtils.isEmpty( lockExpiry ) || lockExpiry.isEmpty() ) {
-                    profile.setLockExpiry( null );
-                } else {
-                    profile.setLockExpiry( new Date( Long.parseLong( lockExpiry ) ) );
-                }
-
-                // Extract all the user's attributes (should only be one attributes tag, but you never know!)
-                final NodeList attributes = user.getElementsByTagName( ATTRIBUTES_TAG );
-                for( int j = 0; j < attributes.getLength(); j++ ) {
-                    final Element attribute = ( Element )attributes.item( j );
-                    final String serializedMap = extractText( attribute );
-                    try {
-                        final Map< String, ? extends Serializable > map = Serializer.deserializeFromBase64( serializedMap );
-                        profile.getAttributes().putAll( map );
-                    } catch( final IOException e ) {
-                        LOG.error( "Could not parse user profile attributes!", e );
-                    }
-                }
+                hydrate(profile, user);
+               
 
                 return profile;
             }
@@ -609,4 +576,70 @@ public class XMLUserDatabase extends AbstractUserDatabase {
         }
     }
 
+    @Override
+    public List<UserProfile> query(UserQuery userQuery) throws WikiSecurityException {
+        List<UserProfile> results = new ArrayList<>();
+        checkForRefresh();
+        final NodeList users = c_dom.getElementsByTagName( USER_TAG );
+        if( users == null ) {
+            return null;
+        }
+
+        if (userQuery.getOffset() >= users.getLength()) {
+            return results;
+        }
+        for (int i = userQuery.getOffset(); i < users.getLength(); i++) {
+            if (results.size() == userQuery.getLimit()) {
+                break;
+            }
+
+            final Element user = (Element) users.item(i);
+            {
+                final UserProfile profile = newProfile();
+                hydrate(profile, user);
+
+                results.add(profile);
+            }
+        }
+        return results;
+    }
+
+    private void hydrate(UserProfile profile, Element user) {
+        // Parse basic attributes
+        profile.setUid(user.getAttribute(UID));
+        if (profile.getUid() == null || profile.getUid().isEmpty()) {
+            profile.setUid(generateUid(this));
+        }
+        profile.setLoginName(user.getAttribute(LOGIN_NAME));
+        profile.setFullname(user.getAttribute(FULL_NAME));
+        profile.setPassword(user.getAttribute(PASSWORD));
+        profile.setEmail(user.getAttribute(EMAIL));
+
+        // Get created/modified timestamps
+        final String created = user.getAttribute(CREATED);
+        final String modified = user.getAttribute(LAST_MODIFIED);
+        profile.setCreated(parseDate(profile, created));
+        profile.setLastModified(parseDate(profile, modified));
+
+        // Is the profile locked?
+        final String lockExpiry = user.getAttribute(LOCK_EXPIRY);
+        if (StringUtils.isEmpty(lockExpiry) || lockExpiry.isEmpty()) {
+            profile.setLockExpiry(null);
+        } else {
+            profile.setLockExpiry(new Date(Long.parseLong(lockExpiry)));
+        }
+
+        // Extract all the user's attributes (should only be one attributes tag, but you never know!)
+        final NodeList attributes = user.getElementsByTagName(ATTRIBUTES_TAG);
+        for (int j = 0; j < attributes.getLength(); j++) {
+            final Element attribute = (Element) attributes.item(j);
+            final String serializedMap = extractText(attribute);
+            try {
+                final Map< String, ? extends Serializable> map = Serializer.deserializeFromBase64(serializedMap);
+                profile.getAttributes().putAll(map);
+            } catch (final IOException e) {
+                LOG.error("Could not parse user profile attributes!", e);
+            }
+        }
+    }
 }

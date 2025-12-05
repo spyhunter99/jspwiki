@@ -20,6 +20,7 @@ package org.apache.wiki.auth.user;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Map;
 
 /**

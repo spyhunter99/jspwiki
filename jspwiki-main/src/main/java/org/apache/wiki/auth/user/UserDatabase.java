@@ -24,6 +24,7 @@ import org.apache.wiki.auth.NoSuchPrincipalException;
 import org.apache.wiki.auth.WikiSecurityException;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -180,5 +181,14 @@ public interface UserDatabase {
      * @return <code>true</code> if the password is valid, <code>false</code> otherwise
      */
     boolean validatePassword( String loginName, String password );
+    /**
+     * Queries for user profiles. Ordering is implementation specific but will be
+     * maintained in order to ensure paging operations are consistent...ish
+     * @throws org.apache.wiki.auth.WikiSecurityException
+     * @since 3.0.0
+     * @param userQuery non null
+     * @return a non null list of matching user profiles.
+     */
+    List<UserProfile> query( UserQuery userQuery) throws WikiSecurityException;
 
 }

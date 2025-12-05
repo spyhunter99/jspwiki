@@ -40,8 +40,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -262,6 +264,8 @@ public class JDBCUserDatabase extends AbstractUserDatabase {
     private String m_findByUid;
 
     private String m_findByWikiName;
+    
+    private String m_orderedQuery;
 
     private String m_renameProfile;
 
@@ -296,7 +300,7 @@ public class JDBCUserDatabase extends AbstractUserDatabase {
     private String m_created;
 
     private String m_modified;
-
+    
     private boolean m_supportsCommits;
 
     /**
@@ -440,7 +444,13 @@ public class JDBCUserDatabase extends AbstractUserDatabase {
             m_findByLoginName = "SELECT * FROM " + userTable + " WHERE " + m_loginName + "=?";
             m_findByUid = "SELECT * FROM " + userTable + " WHERE " + m_uid + "=?";
             m_findByWikiName = "SELECT * FROM " + userTable + " WHERE " + m_wikiName + "=?";
-
+            //the fulling is strict ansi sql compliant...so it should work everywhere
+            //despite the rather verbose syntax. limit and offset are supported by most
+            //but not all sql databases
+            m_orderedQuery = "SELECT * FROM " + userTable + 
+                    " ORDER BY " + m_email + " DESC " +
+                    " OFFSET ? ROWS FETCH FIRST ? ROWS ONLY";
+            
             // The user insert SQL prepared statement
             m_insertProfile = "INSERT INTO " + userTable + " ("
                               + m_uid + ","
@@ -563,6 +573,8 @@ public class JDBCUserDatabase extends AbstractUserDatabase {
     }
 
     /**
+     * @param profile
+     * @throws org.apache.wiki.auth.WikiSecurityException
      * @see org.apache.wiki.auth.user.UserDatabase#save(org.apache.wiki.auth.user.UserProfile)
      */
     @Override
@@ -708,31 +720,8 @@ public class JDBCUserDatabase extends AbstractUserDatabase {
                         break;
                     }
                     profile = newProfile();
+                    hydrate(profile, rs);
                     
-                    // Fetch the basic user attributes
-                    profile.setUid( rs.getString( m_uid ) );
-                    if ( profile.getUid() == null ) {
-                        profile.setUid( generateUid( this ) );
-                    }
-                    profile.setCreated( rs.getTimestamp( m_created ) );
-                    profile.setEmail( rs.getString( m_email ) );
-                    profile.setFullname( rs.getString( m_fullName ) );
-                    profile.setLastModified( rs.getTimestamp( m_modified ) );
-                    final Date lockExpiry = rs.getDate( m_lockExpiry );
-                    profile.setLockExpiry( rs.wasNull() ? null : lockExpiry );
-                    profile.setLoginName( rs.getString( m_loginName ) );
-                    profile.setPassword( rs.getString( m_password ) );
-                    
-                    // Fetch the user attributes
-                    final String rawAttributes = rs.getString( m_attributes );
-                    if ( rawAttributes != null ) {
-                        try {
-                            final Map<String,? extends Serializable> attributes = Serializer.deserializeFromBase64( rawAttributes );
-                            profile.getAttributes().putAll( attributes );
-                        } catch ( final IOException e ) {
-                            LOG.error( "Could not parse user profile attributes!", e );
-                        }
-                    }
                     found = true;
                 }
             }
@@ -747,6 +736,53 @@ public class JDBCUserDatabase extends AbstractUserDatabase {
             throw new NoSuchPrincipalException( "More than one profile in database!" );
         }
         return profile;
+    }
+
+    @Override
+    public List<UserProfile> query(UserQuery userQuery) throws WikiSecurityException {
+        List<UserProfile> result = new ArrayList<>();
+        try( final Connection conn = m_ds.getConnection(); 
+                final PreparedStatement ps = conn.prepareStatement( m_orderedQuery ); ) {
+            ps.setInt(1,userQuery.getOffset());
+            ps.setInt(2,userQuery.getLimit());
+            try (final ResultSet rs = ps.executeQuery();) {
+                while (rs.next()) {
+                    UserProfile profile = newProfile();
+                    hydrate(profile, rs);
+                    result.add(profile);
+                }
+            } 
+        } catch( final SQLException e ) {
+            throw new WikiSecurityException( e.getMessage(), e );
+        }
+        return result;
+    }
+
+    private void hydrate(UserProfile profile, ResultSet rs) throws SQLException {
+        // Fetch the basic user attributes
+        profile.setUid(rs.getString(m_uid));
+        if (profile.getUid() == null) {
+            profile.setUid(generateUid(this));
+        }
+        profile.setCreated(rs.getTimestamp(m_created));
+        profile.setEmail(rs.getString(m_email));
+        profile.setFullname(rs.getString(m_fullName));
+        profile.setLastModified(rs.getTimestamp(m_modified));
+        final Date lockExpiry = rs.getDate(m_lockExpiry);
+        profile.setLockExpiry(rs.wasNull() ? null : lockExpiry);
+        profile.setLoginName(rs.getString(m_loginName));
+        profile.setPassword(rs.getString(m_password));
+
+        // Fetch the user attributes
+        final String rawAttributes = rs.getString(m_attributes);
+        if (rawAttributes != null) {
+            try {
+                final Map<String, ? extends Serializable> attributes = Serializer.deserializeFromBase64(rawAttributes);
+                profile.getAttributes().putAll(attributes);
+            } catch (final IOException e) {
+                LOG.error("Could not parse user profile attributes!", e);
+            }
+        }
     }
 
 }

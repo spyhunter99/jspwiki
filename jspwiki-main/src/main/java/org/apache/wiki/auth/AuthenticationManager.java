@@ -28,6 +28,7 @@ import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.spi.LoginModule;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.security.Principal;
 import java.util.Map;
 import java.util.Set;
@@ -98,11 +99,12 @@ public interface AuthenticationManager extends Initializable {
      * </ul>
      *
      * @param request servlet request for this user
+     * @param response
      * @return always returns <code>true</code> (because anonymous login, at least, will always succeed)
      * @throws org.apache.wiki.auth.WikiSecurityException if the user cannot be logged in for any reason
      * @since 2.3
      */
-    boolean login( HttpServletRequest request ) throws WikiSecurityException;
+    boolean login( HttpServletRequest request, HttpServletResponse response ) throws WikiSecurityException;
     
     /**
      * Attempts to perform a Session login for the given username/password combination using JSPWiki's custom authentication mode. In

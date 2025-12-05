@@ -22,6 +22,8 @@ import org.apache.wiki.api.core.Engine;
 import org.apache.wiki.auth.NoSuchPrincipalException;
 
 import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 
@@ -130,6 +132,11 @@ public class DummyUserDatabase extends AbstractUserDatabase {
      */
     @Override
     public void save( final UserProfile profile ) {
+    }
+
+    @Override
+    public List<UserProfile> query(UserQuery userQuery) {
+        return Collections.EMPTY_LIST;
     }
 
 }

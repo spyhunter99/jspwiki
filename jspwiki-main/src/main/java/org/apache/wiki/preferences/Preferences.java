@@ -19,6 +19,7 @@
 package org.apache.wiki.preferences;
 
 import com.google.gson.Gson;
+import jakarta.servlet.http.Cookie;
 import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -31,7 +32,9 @@ import org.apache.wiki.util.PropertyReader;
 import org.apache.wiki.util.TextUtil;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.jsp.PageContext;
+import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -42,6 +45,11 @@ import java.util.MissingResourceException;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
+import org.apache.wiki.WikiEngine;
+import org.apache.wiki.api.core.Engine;
+import org.apache.wiki.auth.user.UserProfile;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
 
 /**
@@ -58,6 +66,23 @@ public class Preferences extends HashMap< String,String > {
 
     public static final String COOKIE_USER_PREFS_NAME = "JSPWikiUserPrefs";
 
+    public static final String USERPREF_SKIN = "SkinName";
+    public static final String USERPREF_TIMEZONE = "TimeZone";
+    public static final String USERPREF_DATEFORMAT = "DateFormat";
+    public static final String DEFAULT_DATEFORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    /**
+     * fav-left or fav-right
+     */
+    public static final String USERPREF_ORIENTATION = "Orientation";
+    public static final String USERPREF_EDITOR = "editor";
+    /**
+     * usually is just "en"
+     */
+    public static final String USERPREF_LANGUAGE = "Language";
+    public static final String USERPREF_SECTION_EDITING = "SectionEditing" ;
+    
+    
+    
     private static final Logger LOG = LogManager.getLogger( Preferences.class );
 
     /**
@@ -153,7 +178,18 @@ public class Preferences extends HashMap< String,String > {
      *  @return the preference value
      */
     public static String getPreference( final Context wikiContext, final String name ) {
-        final HttpServletRequest request = wikiContext.getHttpRequest();
+        return getPreference(wikiContext.getHttpRequest(), name);
+    }
+    
+    /**
+     *  Returns a preference value programmatically.
+     *  FIXME
+     *
+     * @param request
+     *  @param name
+     *  @return the preference value
+     */
+    public static String getPreference( final HttpServletRequest request, final String name ) {
         if ( request == null ) {
             return null;
         }
@@ -192,7 +228,7 @@ public class Preferences extends HashMap< String,String > {
     public static Locale getLocale( final Context context ) {
         Locale loc = null;
 
-        final String langSetting = getPreference( context, "Language" );
+        final String langSetting = getPreference( context, USERPREF_LANGUAGE );
 
         // parse language and construct valid Locale object
         if( langSetting != null ) {
@@ -250,6 +286,8 @@ public class Preferences extends HashMap< String,String > {
         return i18n.getBundle( bundle, loc );
     }
 
+    
+    
     /**
      * Get SimpleTimeFormat according to user browser locale and preferred time formats. If not found, it will revert to whichever format
      * is set for the default.
@@ -262,13 +300,13 @@ public class Preferences extends HashMap< String,String > {
     public static SimpleDateFormat getDateFormat( final Context context, final TimeFormat tf ) {
         final InternationalizationManager imgr = context.getEngine().getManager( InternationalizationManager.class );
         final Locale clientLocale = getLocale( context );
-        final String prefTimeZone = getPreference( context, "TimeZone" );
+        final String prefTimeZone = getPreference( context, USERPREF_TIMEZONE );
         String prefDateFormat;
 
         LOG.debug("Checking for preferences...");
         switch( tf ) {
             case DATETIME:
-                prefDateFormat = getPreference( context, "DateFormat" );
+                prefDateFormat = getPreference( context, USERPREF_DATEFORMAT );
                 LOG.debug("Preferences fmt = "+prefDateFormat);
                 if( prefDateFormat == null ) {
                     prefDateFormat = imgr.get( InternationalizationManager.CORE_BUNDLE, clientLocale,"common.datetimeformat" );
@@ -316,6 +354,62 @@ public class Preferences extends HashMap< String,String > {
     public static String renderDate( final Context context, final Date date, final TimeFormat tf ) {
         final DateFormat df = getDateFormat( context, tf );
         return df.format( date );
+    }
+
+    public static void apply(Engine engine, UserProfile profile, HttpServletRequest request, HttpServletResponse response) {
+        ObjectNode cookie = new ObjectNode(JsonNodeFactory.instance);
+        String value = getPreference(request, USERPREF_LANGUAGE);
+        if (value==null && request.getLocale()!=null) {
+            value = request.getLocale().toLanguageTag();
+        }
+        if (value==null) {
+            value = Locale.getDefault().toLanguageTag();
+        }
+        Locale locale = Locale.forLanguageTag(value);
+        if (locale != null) {
+            //validation check
+            profile.getAttributes().put(USERPREF_LANGUAGE, locale.toLanguageTag());
+        } else {
+            if (profile.getAttributes().containsKey(USERPREF_LANGUAGE)) {
+                cookie.put(USERPREF_LANGUAGE, (String)profile.getAttributes().get(USERPREF_LANGUAGE));
+            }
+        }
+
+        value = getPreference(request, USERPREF_DATEFORMAT);
+        if (value != null) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat(value);
+                profile.getAttributes().put(USERPREF_DATEFORMAT, value);
+            } catch (Exception ex) {
+
+            }
+        } else if (profile.getAttributes().containsKey(USERPREF_DATEFORMAT)) {
+            cookie.put(USERPREF_DATEFORMAT, (String)profile.getAttributes().get(USERPREF_DATEFORMAT));
+        }
+        
+        value = getPreference(request, USERPREF_TIMEZONE);
+        if (value != null) {
+            try {
+                if (TimeZone.getTimeZone(value) != null) {
+                    profile.getAttributes().put(USERPREF_TIMEZONE, value);
+                }
+            } catch (Exception ex) {
+
+            }
+        } else if (profile.getAttributes().containsKey(USERPREF_TIMEZONE)) {
+            cookie.put(USERPREF_TIMEZONE, (String)profile.getAttributes().get(USERPREF_TIMEZONE));
+        }
+        if (!cookie.isEmpty()) {
+            Cookie c = new Cookie(COOKIE_USER_PREFS_NAME, cookie.toPrettyString());
+            c.setMaxAge(1001 * 24 * 60 * 60); // 1001 days is default.
+            if ("true".equalsIgnoreCase(
+                    engine.getWikiProperties().
+                            getProperty("jspwiki.securecookie", "false"))) {
+                c.setHttpOnly(true);
+                c.setSecure(true);
+                response.addCookie(c);
+            }
+        }
     }
 
     /**
