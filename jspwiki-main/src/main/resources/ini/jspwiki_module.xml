@@ -43,6 +43,12 @@
         <path>editors/wysiwyg.jsp</path>
         <minVersion>2.10</minVersion>
     </editor>
+    
+     <editor name="TipTap">
+      <author>ASF</author>
+      <path>editors/TipTap.jsp</path>
+      <minVersion>3.0</minVersion>
+   </editor>
 
     <plugin class="org.apache.wiki.plugin.IfPlugin">
         <author>Janne Jalkanen</author>
@@ -150,5 +156,7 @@
         <author>Janne Jalkanen</author>
         <minVersion>2.6</minVersion>
     </filter>
+
+   
 
 </modules>
