@@ -176,4 +176,13 @@ public interface UserManager extends Initializable {
         }
     }
 
+    /**
+     * deletes a user from the underlying storage mechanism.
+     * @throws org.apache.wiki.auth.NoSuchPrincipalException
+     * @throws WikiSecurityException
+     * @since 3.0.0
+     * @param profile 
+     */
+    void deleteUser(UserProfile profile) throws NoSuchPrincipalException, WikiSecurityException;
+
 }

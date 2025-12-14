@@ -443,6 +443,11 @@ public class DefaultUserManager implements UserManager {
         WikiEventManager.removeWikiEventListener( this, listener );
     }
 
+    @Override
+    public void deleteUser(UserProfile profile) throws NoSuchPrincipalException, WikiSecurityException{
+        getUserDatabase().deleteByLoginName(profile.getLoginName());
+    }
+
     /**
      *  Implements the JSON API for usermanager.
      *  <p>

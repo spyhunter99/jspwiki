@@ -27,15 +27,19 @@ import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.wiki.api.core.AclEntry;
 import org.apache.wiki.api.core.Engine;
 import org.apache.wiki.api.core.Page;
+import org.apache.wiki.api.exceptions.ProviderException;
 import org.apache.wiki.auth.UserManager;
 import org.apache.wiki.auth.WikiPrincipal;
 import org.apache.wiki.auth.WikiSecurityException;
 import org.apache.wiki.auth.acl.AclEntryImpl;
+import org.apache.wiki.auth.acl.DefaultAclManager;
 import org.apache.wiki.i18n.InternationalizationManager;
 import org.apache.wiki.pages.PageManager;
 import org.apache.wiki.preferences.Preferences;
@@ -72,7 +76,7 @@ public class AccountExpirationMonitor implements Runnable {
     private static final String PW_ACCOUNT_INACTIVITY_BODY = "reminder.accountInactivity.body";
     private InternationalizationManager i18n;
     private UserManager mgr;
-    
+
     public void initialize(Engine engine, Properties wikiProperties) {
         if ("true".equalsIgnoreCase(wikiProperties.getProperty("jspwiki.security.accountmonitor.enable"))) {
             this.engine = engine;
@@ -98,7 +102,7 @@ public class AccountExpirationMonitor implements Runnable {
 
     private void checkAccounts() throws WikiSecurityException {
         LOG.info("checking accounts for expiration noticies");
-        
+
         int offset = 0;
         List<UserProfile> profiles = mgr.getUserDatabase().query(new UserQuery(offset, 100));
         while (!profiles.isEmpty()) {
@@ -114,7 +118,7 @@ public class AccountExpirationMonitor implements Runnable {
     }
 
     //return ture if it was deleted
-    private boolean check(UserProfile profile) {
+    private boolean check(UserProfile profile)  {
         final Locale loc = Locale.forLanguageTag((String) profile.getAttributes().getOrDefault(Preferences.USERPREF_LANGUAGE,
                 Locale.getDefault().toLanguageTag()));
 
@@ -215,7 +219,7 @@ public class AccountExpirationMonitor implements Runnable {
         if (delta > accountInactivityReminder * UNITS && delta < (accountInactivityReminder + 1) * UNITS) {
             //send reminder to use the account within accountAutomaticDeletion-accountInactivityReminder days
             //or it will be deleted
-          
+
             String subject = MessageFormat.format(
                     bundle.getString(PW_ACCOUNT_INACTIVITY_SUBJECT),
                     engine.getWikiProperties().getProperty(Engine.PROP_APPNAME));
@@ -252,7 +256,7 @@ public class AccountExpirationMonitor implements Runnable {
         if (delta > (accountDeletionReminder - 1) * UNITS && delta < (accountDeletionReminder) * UNITS) {
             //send final reminder to use the account within accountAutomaticDeletion-accountInactivityReminder days
             //or it will be deleted
-          
+
             String subject = MessageFormat.format(
                     bundle.getString(PW_ACCOUNT_INACTIVITY_SUBJECT_FINAL),
                     engine.getWikiProperties().getProperty(Engine.PROP_APPNAME));
@@ -282,26 +286,57 @@ public class AccountExpirationMonitor implements Runnable {
             } catch (MessagingException ex) {
                 LOG.warn("failed to email to " + profile.getEmail() + " " + ex.getMessage());
             }
-            mgr.deleteUser(profile);
+            try {
+                mgr.deleteUser(profile);
+            } catch (WikiSecurityException ex) {
+                LOG.error("failed to delete user", ex);
+            }
             PageManager manager = engine.getManager(PageManager.class);
-            Collection<Page> allPages = manager.getAllPages();
+            Collection<Page> allPages;
+            try {
+                allPages = manager.getAllPages();
+            } catch (ProviderException ex) {
+                LOG.error("Failed to get all pages for removing ACL references to " + profile.getLoginName(), ex);
+                return true;
+            }
             for (Page p : allPages) {
-                if (p.getAcl()!=null) {
+                if (p.getAcl() != null) {
                     Enumeration<AclEntry> aclEntries = p.getAcl().aclEntries();
-                    boolean changed=false;
+                    boolean changed = false;
+                    boolean changeneeded = false;
+                    String content = p.getWiki();
                     while (aclEntries.hasMoreElements()) {
                         AclEntry nextElement = aclEntries.nextElement();
-                        if (nextElement.getPrincipal().getName().equals(profile.getLoginName()) ||
-                                nextElement.getPrincipal().getName().equals(profile.getFullname()) ||
-                                nextElement.getPrincipal().getName().equals(profile.getWikiName()) ||
-                                nextElement.getPrincipal().getName().equals(profile.getEmail())) {
-                            //remove the entry
+                        if (nextElement.getPrincipal().getName().equals(profile.getLoginName())
+                                || nextElement.getPrincipal().getName().equals(profile.getWikiName())
+                                || nextElement.getPrincipal().getName().equals(profile.getEmail())) {
+                            changeneeded = true;
                         }
                     }
-                    if (changed) {
-                        //how do we set the page ACLs?
+                    if (changeneeded) {
+                        Matcher matcher = DefaultAclManager.ACL_PATTERN.matcher(content);
+                        //remove the entry
+                        //there's no way easy way to get the ACL statement from the page as is
+                        //or edit it. best we can do is regex it, then remove the deleted user.
+                        
+                        while (matcher.find()) {
+                            final String statement = content.substring(matcher.start(), matcher.end());
+                            String replacement = statement.replace(profile.getLoginName(), "");
+                            replacement = replacement.replace(profile.getWikiName(), "");
+                            replacement = replacement.replace(profile.getEmail(), "");
+                            content = content.replace(statement, replacement);
+                            changed = true;
+                        }
+                        if (changed) {
+                            try {
+                                //how do we set the page ACLs?
+                                manager.putPageText(p, content);
+                            } catch (ProviderException ex) {
+                                LOG.error(ex.getMessage(), ex);
+                            }
+                        }
                     }
-                    
+
                 }
             }
             //update the groups that they were in, if any
