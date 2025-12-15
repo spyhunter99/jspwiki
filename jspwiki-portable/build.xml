@@ -114,6 +114,9 @@
       <fileset dir="${basedir}/../jspwiki-plugins/jspwiki-plugins-chartist/target">
 		<filename name ="*.jar" />
 	  </fileset>
+	  <fileset dir="${basedir}/../jspwiki-plugins/jspwiki-plugins-mathjax/target">
+		<filename name ="*.jar" />
+	  </fileset>
     </copy>
     <!-- make the start scripts executable -->
     <chmod dir="${jspwiki.woas.assembly.dir}" includes="*.sh" perm="ugo+x"/>        
