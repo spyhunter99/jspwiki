@@ -38,8 +38,11 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Objects;
+import org.apache.wiki.preferences.Preferences;
 
 /**
  * Filter that verifies that the {@link org.apache.wiki.api.core.Engine} is running, and sets the authentication status for the user's
@@ -125,7 +128,14 @@ public class WikiServletFilter implements Filter {
             try {
                 m_engine.getManager( AuthenticationManager.class ).login( httpRequest );
                 final Session wikiSession = SessionMonitor.getInstance( m_engine ).find( httpRequest.getSession() );
-                httpRequest = new WikiRequestWrapper( m_engine, httpRequest );
+                httpRequest = new WikiRequestWrapper(m_engine, httpRequest);
+                if (httpRequest.getRequestURI().contains("Login.jsp") && "POST".equalsIgnoreCase(httpRequest.getMethod())) {
+                    httpRequest.getSession().setAttribute("LOAD_PREFS_REQUIRED", true);
+                    //Preferences.reloadPreferences(httpRequest, (HttpServletResponse) response, true);
+                } else if (Objects.equals(Boolean.TRUE, httpRequest.getSession().getAttribute("LOAD_PREFS_REQUIRED")) && wikiSession.isAuthenticated()) {
+                    Preferences.reloadPreferences(httpRequest, (HttpServletResponse) response, true);
+                    httpRequest.getSession().removeAttribute("LOAD_PREFS_REQUIRED");
+                }
                 LOG.debug( "Executed security filters for user={}, path={}",wikiSession.getLoginPrincipal().getName(), httpRequest.getRequestURI() );
             } catch( final WikiSecurityException e ) {
                 throw new ServletException( e );

@@ -152,6 +152,18 @@ public class WikiEngine implements Engine {
     public static synchronized WikiEngine getInstance( final ServletConfig config ) throws InternalWikiException {
         return getInstance( config.getServletContext(), null );
     }
+    
+    /**
+     *  Gets a WikiEngine related to this servlet.  Since this method is only called from JSP pages (and JspInit()) to be specific,
+     *  we throw a RuntimeException if things don't work.
+     *
+     *  @param config The ServletConfig object for this servlet.
+     *  @return A WikiEngine instance.
+     *  @throws InternalWikiException in case something fails. This is a RuntimeException, so be prepared for it.
+     */
+    public static synchronized WikiEngine getInstance( final ServletContext config ) throws InternalWikiException {
+        return getInstance( config, null );
+    }
 
     /**
      *  Gets a WikiEngine related to the servlet. Works like getInstance(ServletConfig), but does not force the Properties object.

@@ -19,6 +19,7 @@
 package org.apache.wiki.preferences;
 
 import com.google.gson.Gson;
+import jakarta.servlet.http.Cookie;
 import org.apache.commons.lang3.LocaleUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -31,6 +32,7 @@ import org.apache.wiki.util.PropertyReader;
 import org.apache.wiki.util.TextUtil;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.jsp.PageContext;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -42,6 +44,16 @@ import java.util.MissingResourceException;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
+import org.apache.wiki.WikiContext;
+import org.apache.wiki.WikiEngine;
+import static org.apache.wiki.api.core.Context.ATTR_CONTEXT;
+import org.apache.wiki.api.core.Engine;
+import org.apache.wiki.api.core.Session;
+import org.apache.wiki.api.exceptions.WikiException;
+import org.apache.wiki.auth.NoSuchPrincipalException;
+import org.apache.wiki.auth.SessionMonitor;
+import org.apache.wiki.auth.UserManager;
+import org.apache.wiki.auth.user.UserProfile;
 
 
 /**
@@ -91,12 +103,21 @@ public class Preferences extends HashMap< String,String > {
     //        with which the user happened to first arrive to the site with.  This, unfortunately, means that even if the user changes e.g.
     //        language preferences (like in a web cafe), the old preferences still remain in a site cookie.
     public static void reloadPreferences( final PageContext pageContext ) {
+        reloadPreferences((HttpServletRequest)pageContext.getRequest(), (HttpServletResponse) pageContext.getResponse(), false);
+        
+    }
+    public static void reloadPreferences( final HttpServletRequest request, final HttpServletResponse response, boolean isDuringLogin) {
+      
         final Preferences prefs = new Preferences();
-        final Properties props = PropertyReader.loadWebAppProps( pageContext.getServletContext() );
-        final Context ctx = Context.findContext( pageContext );
+        final Properties props = PropertyReader.loadWebAppProps( request.getServletContext() );
+        Context ctx = ( Context ) request.getAttribute( ATTR_CONTEXT );
+        if (ctx==null) {
+            Engine engine = WikiEngine.getInstance(request.getServletContext());
+            ctx = new WikiContext( engine,request, "");
+        }
         final String dateFormat = ctx.getEngine().getManager( InternationalizationManager.class )
                                            .get( InternationalizationManager.CORE_BUNDLE, getLocale( ctx ), "common.datetimeformat" );
-
+        //load up all the default values
         prefs.put("SkinName", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.skinname", "PlainVanilla" ) );
         prefs.put("DateFormat", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.dateformat", dateFormat ) );
         prefs.put("TimeZone", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.timezone", TimeZone.getDefault().getID() ) );
@@ -117,8 +138,46 @@ public class Preferences extends HashMap< String,String > {
 
         // FIXME: editormanager reads jspwiki.editor -- which of both properties should continue
         prefs.put("editor", TextUtil.getStringProperty( props, "jspwiki.defaultprefs.template.editor", "plain" ) );
-        parseJSONPreferences( (HttpServletRequest) pageContext.getRequest(), prefs );
-        pageContext.getSession().setAttribute( SESSIONPREFS, prefs );
+        //reads in preferences from the browser request.
+        parseJSONPreferences(request, prefs);
+        //TODO check if the request's preferences are not the default values...
+        try {
+            UserManager mgr = ctx.getEngine().getManager(UserManager.class);
+            Session wikiSession = SessionMonitor.getInstance(ctx.getEngine()).find(request.getSession());
+            if (wikiSession.isAuthenticated()) {
+                //String name = ((HttpServletRequest) pageContext.getRequest()).getUserPrincipal().getName();
+                UserProfile profile = mgr.getUserDatabase().findByLoginName(wikiSession.getLoginPrincipal().getName());
+
+                if (!isDuringLogin) {
+                    //we have received user preferences from the browser, apply them to the user profile for next time.
+                    //however if this happened during the login period and all the existing prefences are defaults...
+                    //we should restore them from the profile.
+                    profile.getAttributes().put("prefs", prefs);
+                    mgr.setUserProfile(ctx, profile);
+                    LOG.debug("user preferences persisted to profile");
+                } else {
+                    //during user login
+                    //no user preferences from the request. check the user profile for preferences
+                    //if they are prsent, transfer the cookie back to the response.
+                    Preferences storedPrefs = (Preferences) profile.getAttributes().get("prefs");
+                    if (storedPrefs != null) {
+                        String json = new Gson().toJson(storedPrefs);
+                        json = TextUtil.urlEncodeUTF8(json);
+                        Cookie c = new Cookie(COOKIE_USER_PREFS_NAME, json);
+                        response.addCookie(c);
+                        prefs.putAll(storedPrefs);
+                    }
+                    
+                }
+            }
+        } catch (NoSuchPrincipalException ex) {
+            LOG.warn("error applying user preferences to the http response " + ex.getMessage());
+        } catch (WikiException ex) {
+            LOG.warn("error applying user preferences to the http response", ex);
+        } catch (Exception ex) {
+            LOG.warn("error applying user preferences to the http response", ex);
+        }
+        request.getSession().setAttribute( SESSIONPREFS, prefs );
     }
 
 
