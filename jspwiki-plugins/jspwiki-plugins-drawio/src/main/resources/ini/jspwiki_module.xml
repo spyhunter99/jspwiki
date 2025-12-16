@@ -1,0 +1,10 @@
+<modules>
+    <plugin class="org.apache.jspwiki.plugins.drawio.SaveDrawIoAjax">
+        <author>ASF</author>
+        <minVersion>3.0.0</minVersion>
+    </plugin>
+    <plugin class="org.apache.jspwiki.plugins.drawio.LoadAttachmentAjax">
+        <author>ASF</author>
+        <minVersion>3.0.0</minVersion>
+    </plugin>
+</modules>
