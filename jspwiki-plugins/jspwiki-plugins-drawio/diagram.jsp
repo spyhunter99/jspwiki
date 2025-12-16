@@ -1,3 +1,22 @@
+<%--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+--%>
+
 <%@page import="org.apache.wiki.api.spi.Wiki"%>
 <%@page import="org.apache.wiki.WikiContext"%>
 <%@ taglib uri="http://jspwiki.apache.org/tags" prefix="wiki" %>
@@ -8,46 +27,59 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ page import="jakarta.servlet.jsp.jstl.fmt.*" %>
+
+<%@ page import="org.apache.commons.lang3.time.StopWatch" %>
+<%@ page import="org.apache.logging.log4j.Logger" %>
+<%@ page import="org.apache.logging.log4j.LogManager" %>
+<%@ page import="org.apache.wiki.WatchDog" %>
+<%@ page import="org.apache.wiki.api.core.*" %>
+<%@ page import="org.apache.wiki.api.spi.Wiki" %>
+<%@ page import="org.apache.wiki.auth.AuthorizationManager" %>
+<%@ page import="org.apache.wiki.preferences.Preferences" %>
+<%@ page import="org.apache.wiki.ui.TemplateManager" %>
+<%@ page import="org.apache.wiki.util.*" %>
+<%@ page errorPage="/Error.jsp" %>
+<%!
+    Logger log = LogManager.getLogger("JSPWiki");
+%>
+
 <%
-  Context c = Context.findContext(pageContext);
   Engine engine = Wiki.engine().find(this.getServletConfig());
-  if (c==null) {
-      c = Wiki.context().create(engine, request, "");
+  Context wikiContext = Context.findContext(pageContext);
+  if (wikiContext==null) {
+      wikiContext = Wiki.context().create(engine, request, "");
   }
+  
   String url = engine.getWikiProperties().getProperty("drawio.url", "/draw/");
   if (!url.endsWith("/")) {
       url = url + "/";
   }
-  
+  System.out.println(url);
 %>
-<c:set var="csrfProtection" value="<%= c.getWikiSession().antiCsrfToken() %>" />
 
 <html lang="en" id="top" xmlns="http://www.w3.org/1999/xhtml" xmlns:jspwiki="http://jspwiki.apache.org">
 
     <head>
         <title>
-            <fmt:message key="view.title.view">
-                <fmt:param><wiki:Variable var="ApplicationName" default="Apache JSPWiki" /></fmt:param>
+           
                 Diagram Editor
-            </fmt:message>
+           
         </title>
-        <wiki:Include page="commonheader.jsp"/>
     </head>
 
     <body>
-        <iframe id='drawio-editor-iframe' src="${url}index.html?embed=1&ui=atlas&spin=1&modified=unsavedChanges&proto=json&saveAndExit=1"
+        <iframe id='drawio-editor-iframe' src="<%=url%>index.html?embed=1&ui=atlas&spin=1&modified=unsavedChanges&proto=json&saveAndExit=1"
                 width="100%" height="100%" ></iframe>
         <script type="text/javascript">
-            //TODO add configuration checks to figure out where the drawio is being hosted from.
             const queryString = window.location.search;
             const urlParams = new URLSearchParams(queryString);
             const pageName = urlParams.get('pageName');
             if (pageName == null || pageName.trim().length == 0) {
-                //need the page name...
-                alert("no page name");
+                //need the page name...redirect back to the wiki
+                 window.location.href="./Wiki.jsp";
             }
-            const token = "${csrfProtection}";
-            const existingAttachmentName = urlParams.get('attachment');
+            const token = "<%=wikiContext.getWikiSession().antiCsrfToken()%>";
+            const existingAttachmentName = urlParams.get('attachment') ? urlParams.get('attachment') : "newDiagram.svg";
 
             //
             //if loading an existing one...
@@ -89,7 +121,7 @@
                         } else {
                             //load the attachment, once loaded send the load message.
                             fetch('ajax/loadDrawioDiagram?pageName=' + encodeURIComponent(pageName) + 
-                                    "&attachmentName=" + encodeURIComponent(existingAttachmentName)
+                                    "&attachmentName=" + encodeURIComponent(existingAttachmentName) +
                                     '&X-XSRF-TOKEN=' + encodeURIComponent(token), {method: 'GET'})
                                 .then(response => {
                                     if (response.ok) {
@@ -100,7 +132,11 @@
                                         });
                                     } else {
                                         console.error('load failed with status:', response.status);
-                                        alert('Failed to load the diagram: ' + response.statusText);
+										//can't be loaded, new diagram.
+                                        sendDrawioMessage({
+											action: 'load',
+											xml: initialDiagramXML // Pass the XML content here
+										});
                                     }
                                 });
 
@@ -161,7 +197,7 @@
                 // 2. Prepare the data payload for your JSPWiki Action/Servlet
                 const payload = {
                     pageName: pageName,
-                    attachmentName: 'MyDiagram.svg',
+                    attachmentName: existingAttachmentName,
                     fileContent: rawBase64
                 };
 
@@ -184,7 +220,7 @@
 
             function closeEditorWindow() {
                 // Logic to close the editor view and return to the main wiki page
-                window.location.href="./Wiki.jsp";
+                window.location.href="./Wiki.jsp?page=" + encodeURIComponent(pageName);
             }
         </script>
     </body>

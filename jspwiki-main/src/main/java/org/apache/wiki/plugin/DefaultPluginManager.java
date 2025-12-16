@@ -727,8 +727,10 @@ public class DefaultPluginManager extends BaseModuleManager implements PluginMan
         Set<Plugin> plugins = new HashSet<>();
         for(WikiModuleInfo plugin : pluginModules) {
             try {
-                Plugin p = (Plugin) Class.forName(((WikiPluginInfo)plugin).getClassName()).getDeclaredConstructor().newInstance();
-                plugins.add(p);
+                Plugin p = (Plugin) Class.forName(((WikiPluginInfo) plugin).getClassName()).getDeclaredConstructor().newInstance();
+                if (!(p instanceof WikiAjaxServlet)) {
+                    plugins.add(p);
+                }
             } catch (Throwable ex) {
                 LOG.error("failed to load class " + plugin.getName(), ex);
             }

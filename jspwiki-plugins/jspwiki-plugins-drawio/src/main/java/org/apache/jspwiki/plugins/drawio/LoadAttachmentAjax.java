@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.security.ProviderException;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,6 +36,7 @@ import org.apache.wiki.api.exceptions.PluginException;
 import org.apache.wiki.api.plugin.Plugin;
 import org.apache.wiki.api.providers.AttachmentProvider;
 import org.apache.wiki.api.providers.WikiProvider;
+import org.apache.wiki.api.spi.Wiki;
 import org.apache.wiki.attachment.AttachmentManager;
 import org.apache.wiki.auth.AuthorizationManager;
 import org.apache.wiki.auth.permissions.PagePermission;
@@ -57,8 +59,12 @@ public class LoadAttachmentAjax implements WikiAjaxServlet, Plugin {
     @Override
     public void service(HttpServletRequest request, HttpServletResponse response, String actionName, List<String> params) throws ServletException, IOException {
         // 1. Setup and Security Checks
-        Context context = (Context) request.getAttribute(Context.ATTR_CONTEXT);
-        Engine engine = context.getEngine();
+       Context context = (Context) request.getAttribute(Context.ATTR_CONTEXT);
+        Engine engine = Wiki.engine().find(request.getServletContext(), new Properties());
+        if (context == null) {
+
+            context = Wiki.context().create(engine, request, "");
+        }
         // Must be a POST request for saving data
         if (!"GET".equalsIgnoreCase(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
@@ -69,12 +75,15 @@ public class LoadAttachmentAjax implements WikiAjaxServlet, Plugin {
         final String pageName = request.getParameter("pageName");
         // Check if user has permission to edit the target page
         // (You might want a more granular check for attachments)
+        
+        /*
+        FIXME
         PagePermission perm = new PagePermission(pageName, "view");
         if (!engine.getManager(AuthorizationManager.class).checkPermission(context.getWikiSession(), perm)) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             LOG.warn("User attempted to save a diagram without edit permission to " + pageName);
             return;
-        }
+        }*/
         try {
 
             AttachmentManager attachmentManager = engine.getManager(AttachmentManager.class);

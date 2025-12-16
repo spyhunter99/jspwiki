@@ -7,4 +7,8 @@
         <author>ASF</author>
         <minVersion>3.0.0</minVersion>
     </plugin>
+    <plugin class="org.apache.jspwiki.plugins.drawio.DrawioDiagram">
+        <author>ASF</author>
+        <minVersion>3.0.0</minVersion>
+    </plugin>
 </modules>
