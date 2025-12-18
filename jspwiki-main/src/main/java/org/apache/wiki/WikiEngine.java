@@ -90,11 +90,11 @@ import org.apache.wiki.security.AuditLogger;
 /**
  *  Main implementation for {@link Engine}.
  *
- *  <P>
+ *  <p>
  *  Using this class:  Always get yourself an instance from JSP page by using the {@code WikiEngine.getInstance(..)} method.  Never create
  *  a new WikiEngine() from scratch, unless you're writing tests.
  *
- *  <p>
+ *  </p>
  *  {@inheritDoc}
  */
 public class WikiEngine implements Engine {

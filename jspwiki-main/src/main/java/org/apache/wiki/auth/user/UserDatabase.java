@@ -169,8 +169,30 @@ public interface UserDatabase {
      *
      * @param profile the user profile to save
      * @throws WikiSecurityException if the profile cannot be saved
+     * @deprecated see {@link #save(org.apache.wiki.auth.user.UserProfile, boolean) }
+     * to maintain backwards compatibility, this calls Save (profile, true);
      */
+    @Deprecated
     void save( UserProfile profile ) throws WikiSecurityException;
+    /**
+     * <p>
+     * Saves a {@link UserProfile}to the user database, overwriting the existing profile if it exists. The user name under which the profile
+     * should be saved is returned by the supplied profile's {@link UserProfile#getLoginName()} method.
+     * </p>
+     * <p>
+     * The database implementation is responsible for detecting potential duplicate user profiles; specifically, the login name, wiki name,
+     * and full name must be unique. The implementation is not required to check for validity of passwords or e-mail addresses. Special
+     * case: if the profile already exists and the password is null, it should retain its previous value, rather than being set to null.
+     * </p>
+     * <p>Implementations are <em>required</em> to time-stamp the creation or modification fields of the UserProfile./p>
+     * <p>This method is intended to be atomic; results cannot be partially committed. If the commit fails, it should roll back its state
+     * appropriately. Implementing classes that persist to the file system may wish to make this method <code>synchronized</code>.</p>
+     * @since 3.0.0
+     * @param profile the user profile to save
+     * @param setModifiedTimestamp if true, the modified date is set
+     * @throws WikiSecurityException if the profile cannot be saved
+     */
+    void save( UserProfile profile, boolean setModifiedTimestamp ) throws WikiSecurityException;
 
     /**
      * Determines whether a supplied user password is valid, given a login name and password. It is up to the implementing class to

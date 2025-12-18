@@ -25,6 +25,7 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import org.apache.wiki.auth.WikiSecurityException;
 
 
 /**
@@ -137,6 +138,10 @@ public class DummyUserDatabase extends AbstractUserDatabase {
     @Override
     public List<UserProfile> query(UserQuery userQuery) {
         return Collections.EMPTY_LIST;
+    }
+
+    @Override
+    public void save(UserProfile profile, boolean setModifiedTimestamp) throws WikiSecurityException {
     }
 
 }

@@ -20,7 +20,6 @@ package org.apache.wiki.auth.user;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -34,6 +33,10 @@ import java.util.Map;
  */
 public interface UserProfile extends Serializable
 {
+    String PWD_EXPIRED = "PWD_EXPIRED";
+    String PWD_NEVER_EXPIRES = "PWD_NEVER_EXPIRES";
+    String NEVER_DELETE = "NEVER_DELETE";
+    String PASSWORD_SET_TIME = "PASSWORD_SET_TIME";
     /**
      * IP
      */

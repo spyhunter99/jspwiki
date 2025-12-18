@@ -366,10 +366,15 @@ public class XMLUserDatabase extends AbstractUserDatabase {
         // Commit to disk
         saveDOM();
     }
-
     /** {@inheritDoc} */
     @Override
     public synchronized void save( final UserProfile profile ) throws WikiSecurityException {
+        save(profile, true);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public synchronized void save( final UserProfile profile, boolean setModifiedDate ) throws WikiSecurityException {
         if ( c_dom == null ) {
             LOG.fatal( "Could not save profile " + profile + " database does not exist" );
             throw new IllegalStateException( "FATAL: database does not exist" );
@@ -402,7 +407,10 @@ public class XMLUserDatabase extends AbstractUserDatabase {
         }
 
         setAttribute( user, UID, profile.getUid() );
-        setAttribute( user, LAST_MODIFIED, c_format.format( modDate ) );
+        if (setModifiedDate || isNew) {
+            setAttribute(user, LAST_MODIFIED, c_format.format(modDate));
+        }
+
         setAttribute( user, LOGIN_NAME, profile.getLoginName() );
         setAttribute( user, FULL_NAME, profile.getFullname() );
         setAttribute( user, WIKI_NAME, profile.getWikiName() );
@@ -436,7 +444,9 @@ public class XMLUserDatabase extends AbstractUserDatabase {
         if( isNew ) {
             profile.setCreated( modDate );
         }
-        profile.setLastModified( modDate );
+        if (setModifiedDate || isNew) {
+            profile.setLastModified(modDate);
+        }
 
         // Commit to disk
         saveDOM();

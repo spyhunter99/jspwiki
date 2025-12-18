@@ -36,6 +36,7 @@ public interface ContextSPI {
      *
      *  @param engine The Engine that is handling the request.
      *  @param page The Page. If you want to create a Context for an older version of a page, you must use this method.
+     * @return Context
      */
     Context create( Engine engine, Page page );
 
@@ -47,6 +48,7 @@ public interface ContextSPI {
      * @param engine The Engine that is handling the request
      * @param request The HttpServletRequest that should be associated with this context. This parameter may be <code>null</code>.
      * @param command the command
+     * @return Context
      */
     Context create( Engine engine, HttpServletRequest request, Command command );
 
@@ -56,6 +58,7 @@ public interface ContextSPI {
      * @param engine The Engine that is handling the request
      * @param request The HttpServletRequest that should be associated with this context. This parameter may be <code>null</code>.
      * @param page The WikiPage. If you want to create a WikiContext for an older version of a page, you must supply this parameter
+     * @return Context
      */
     Context create( Engine engine, HttpServletRequest request, Page page );
 
@@ -65,6 +68,7 @@ public interface ContextSPI {
      *  @param engine The Engine that is handling the request
      *  @param request the HTTP request
      *  @param requestContext the default context to use
+     * @return Context
      */
     Context create( Engine engine, HttpServletRequest request, String requestContext );
 

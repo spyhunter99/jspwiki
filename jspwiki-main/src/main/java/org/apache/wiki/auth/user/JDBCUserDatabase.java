@@ -579,6 +579,16 @@ public class JDBCUserDatabase extends AbstractUserDatabase {
      */
     @Override
     public void save( final UserProfile profile ) throws WikiSecurityException {
+        save(profile, true);
+    }
+    /**
+     * @param profile
+     * @param setModifiedDate
+     * @throws org.apache.wiki.auth.WikiSecurityException
+     * @see org.apache.wiki.auth.user.UserDatabase#save(org.apache.wiki.auth.user.UserProfile)
+     */
+    @Override
+    public void save( final UserProfile profile, boolean setModifiedDate ) throws WikiSecurityException {
         final String initialRole = "Authenticated";
 
         // Figure out which prepared statement to use & execute it
@@ -661,7 +671,13 @@ public class JDBCUserDatabase extends AbstractUserDatabase {
                 ps4.setString( 3, profile.getFullname() );
                 ps4.setString( 4, password );
                 ps4.setString( 5, profile.getWikiName() );
-                ps4.setTimestamp( 6, ts );
+                if (!setModifiedDate) {
+                    //keep the old timestamp
+                    Timestamp ts2 = new Timestamp( profile.getLastModified().getTime() );
+                    ps4.setTimestamp( 6, ts2 );
+                } else {
+                    ps4.setTimestamp( 6, ts );
+                }
                 ps4.setString( 7, profile.getLoginName() );
                 try {
                     ps4.setString( 8, Serializer.serializeToBase64( profile.getAttributes() ) );
@@ -673,7 +689,9 @@ public class JDBCUserDatabase extends AbstractUserDatabase {
                 ps4.execute();
             }
             // Set the profile mod time
-            profile.setLastModified( modDate );
+            if (setModifiedDate) {
+                profile.setLastModified(modDate);
+            }
 
             // Commit and close connection
             if( m_supportsCommits ) {

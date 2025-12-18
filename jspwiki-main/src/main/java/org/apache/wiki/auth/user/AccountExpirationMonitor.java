@@ -23,22 +23,24 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.wiki.api.core.AclEntry;
+import org.apache.wiki.api.core.Context;
 import org.apache.wiki.api.core.Engine;
 import org.apache.wiki.api.core.Page;
 import org.apache.wiki.api.exceptions.ProviderException;
+import org.apache.wiki.api.exceptions.WikiException;
+import org.apache.wiki.api.spi.Wiki;
+import org.apache.wiki.auth.AuthenticationManager;
 import org.apache.wiki.auth.UserManager;
-import org.apache.wiki.auth.WikiPrincipal;
 import org.apache.wiki.auth.WikiSecurityException;
-import org.apache.wiki.auth.acl.AclEntryImpl;
 import org.apache.wiki.auth.acl.DefaultAclManager;
 import org.apache.wiki.i18n.InternationalizationManager;
 import org.apache.wiki.pages.PageManager;
@@ -60,11 +62,12 @@ public class AccountExpirationMonitor implements Runnable {
 
     private Engine engine;
     //all units of time are in days
-    private int accountInactivityReminder = 180;
-    private int accountDeletionReminder = 270;
-    private int accountAutomaticDeletion = 365;
-    private int passwordExpiration = 90;
-    private int passwordExpirationReminder = 75;
+    private static int accountInactivityReminder = 180;
+
+    private static int accountDeletionReminder = 270;
+    private static int accountAutomaticDeletion = 365;
+    private static int passwordExpiration = 90;
+    private static int passwordExpirationReminder = 75;
     private static final long UNITS = 24 * 60 * 60 * 1000;
     private static final String PW_REMINDER_SUBJECT = "reminder.passwordExpiration.subject";
     private static final String PW_REMINDER_BODY = "reminder.passwordExpiration.body";
@@ -77,25 +80,133 @@ public class AccountExpirationMonitor implements Runnable {
     private InternationalizationManager i18n;
     private UserManager mgr;
 
-    public void initialize(Engine engine, Properties wikiProperties) {
+    /**
+     *
+     * @return time in days
+     */
+    public static int getAccountInactivityReminder() {
+        return accountInactivityReminder;
+    }
+
+    /**
+     *
+     * @return time in days
+     */
+    public static int getAccountDeletionReminder() {
+        return accountDeletionReminder;
+    }
+
+    /**
+     *
+     * @return time in days
+     */
+    public static int getAccountAutomaticDeletion() {
+        return accountAutomaticDeletion;
+    }
+
+    /**
+     *
+     * @return time in days
+     */
+    public static int getPasswordExpiration() {
+        return passwordExpiration;
+    }
+
+    /**
+     *
+     * @return time in days
+     */
+    public static int getPasswordExpirationReminder() {
+        return passwordExpirationReminder;
+    }
+
+    public boolean canInitialize(Engine engine, Properties wikiProperties) {
         if ("true".equalsIgnoreCase(wikiProperties.getProperty("jspwiki.security.accountmonitor.enable"))) {
-            this.engine = engine;
-            mgr = engine.getManager(UserManager.class);
-            i18n = engine.getManager(InternationalizationManager.class);
-            exec = new ScheduledThreadPoolExecutor(2);
-            accountInactivityReminder = Integer.parseInt(wikiProperties.getProperty("jspwiki.security.accountmonitor.accountInactivityReminder", "180"));
-            accountDeletionReminder = Integer.parseInt(wikiProperties.getProperty("jspwiki.security.accountmonitor.accountDeletionReminder", "270"));
-            accountAutomaticDeletion = Integer.parseInt(wikiProperties.getProperty("jspwiki.security.accountmonitor.accountAutomaticDeletion", "365"));
-            passwordExpiration = Integer.parseInt(wikiProperties.getProperty("jspwiki.security.accountmonitor.passwordExpiration", "90"));
-            passwordExpirationReminder = Integer.parseInt(wikiProperties.getProperty("jspwiki.security.accountmonitor.passwordExpirationReminder", "75"));
-            exec.scheduleAtFixedRate(this, 0, 1, TimeUnit.DAYS);
+            if (engine.getManager(AuthenticationManager.class).isContainerAuthenticated()) {
+                LOG.warn("The current configuration is container based authentication. However, jspwiki.security.accountmonitor.enable=true. This is an "
+                        + "invalid configuration. THe account expiration monitor cannot be used with container authentication since we have "
+                        + "no control over user accounts in this configuration.");
+                return false;
+            }
+            return true;
         }
+        return false;
+    }
+
+    private void init(Engine engine, Properties wikiProperties) throws WikiException {
+        this.engine = engine;
+        mgr = engine.getManager(UserManager.class);
+        i18n = engine.getManager(InternationalizationManager.class);
+        exec = new ScheduledThreadPoolExecutor(2);
+        accountInactivityReminder = Integer.parseInt(wikiProperties.getProperty(PROP_ACCOUNT_INACTIVITY_REMINDER, "180"));
+        accountDeletionReminder = Integer.parseInt(wikiProperties.getProperty(PROP_ACCOUNT_DELETION_REMINDER, "270"));
+        accountAutomaticDeletion = Integer.parseInt(wikiProperties.getProperty(PROP_ACCOUNT_AUTO_DELETION, "365"));
+        passwordExpiration = Integer.parseInt(wikiProperties.getProperty(PROP_PWD_EXPIRATION, "90"));
+        passwordExpirationReminder = Integer.parseInt(wikiProperties.getProperty(PROP_PWD_EXPIRATION_REMINDER, "75"));
+        if (accountInactivityReminder <= 0) {
+            throw new WikiException("accountInactivityReminder must be > 0");
+        }
+        if (accountDeletionReminder <= 0) {
+            throw new WikiException("accountDeletionReminder must be > 0");
+        }
+        if (accountAutomaticDeletion <= 0) {
+            throw new WikiException("accountAutomaticDeletion must be > 0");
+        }
+        if (passwordExpiration <= 0) {
+            throw new WikiException("passwordExpiration must be > 0");
+        }
+        if (passwordExpirationReminder <= 0) {
+            throw new WikiException("passwordExpirationReminder must be > 0");
+        }
+        if (!max(passwordExpiration, passwordExpirationReminder)) {
+            throw new WikiException("passwordExpiration must be > passwordExpirationReminder");
+        }
+        if (!max(accountAutomaticDeletion, accountInactivityReminder, accountDeletionReminder, passwordExpiration, passwordExpirationReminder)) {
+            throw new WikiException("accountAutomaticDeletion must be > accountInactivityReminder,accountDeletionReminder,passwordExpiration,passwordExpirationReminder");
+        }
+        if (!max(accountDeletionReminder, accountInactivityReminder, passwordExpiration, passwordExpirationReminder)) {
+            throw new WikiException("accountDeletionReminder must be > accountInactivityReminder,passwordExpiration,passwordExpirationReminder");
+        }
+        if (!max(accountInactivityReminder, passwordExpiration, passwordExpirationReminder)) {
+            throw new WikiException("accountInactivityReminder must be > passwordExpiration,passwordExpirationReminder");
+        }
+
+        //validate that the durations make sense...
+        exec.scheduleAtFixedRate(this, 0, 1, TimeUnit.DAYS);
+    }
+    public static final String PROP_PWD_EXPIRATION_REMINDER = "jspwiki.security.accountmonitor.passwordExpirationReminder";
+    public static final String PROP_PWD_EXPIRATION = "jspwiki.security.accountmonitor.passwordExpiration";
+    public static final String PROP_ACCOUNT_AUTO_DELETION = "jspwiki.security.accountmonitor.accountAutomaticDeletion";
+    public static final String PROP_ACCOUNT_DELETION_REMINDER = "jspwiki.security.accountmonitor.accountDeletionReminder";
+    public static final String PROP_ACCOUNT_INACTIVITY_REMINDER = "jspwiki.security.accountmonitor.accountInactivityReminder";
+
+    private boolean max(int value, int... values) {
+        for (int target : values) {
+            if (value <= target) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean initialize(Engine engine, Properties wikiProperties) throws WikiException {
+        if (canInitialize(engine, wikiProperties)) {
+            init(engine, wikiProperties);
+            return true;
+        }
+        return false;
     }
     private ScheduledThreadPoolExecutor exec = null;
 
     public void shutdown() {
 
         if (exec != null) {
+            exec.shutdown();
+            try {
+                exec.awaitTermination(10, TimeUnit.MINUTES);
+            } catch (InterruptedException ex) {
+                LOG.warn("timed out waiting for threadpool shutdown");
+            }
             exec.shutdownNow();
         }
     }
@@ -117,8 +228,57 @@ public class AccountExpirationMonitor implements Runnable {
         }
     }
 
+    public static boolean isNeverExpires(UserProfile profile) {
+        return "true".equalsIgnoreCase((String) profile.getAttributes().get(UserProfile.PWD_NEVER_EXPIRES));
+    }
+
+    public static boolean isPasswordExpired(UserProfile profile) {
+        if (profile.getAttributes().get(UserProfile.PWD_EXPIRED) == null) {
+            return false;
+        }
+        return (Objects.equals(Boolean.TRUE, profile.getAttributes().get(UserProfile.PWD_EXPIRED))
+                || "true".equalsIgnoreCase((String) profile.getAttributes().get(UserProfile.PWD_EXPIRED)));
+    }
+
+    public static boolean isPasswordNearReminder(UserProfile profile, long currentTime) {
+        Long setTime = (Long) profile.getAttributes().get(UserProfile.PASSWORD_SET_TIME);
+        if (setTime == null) {
+            //could be a jspwiki upgrade situation, old account etc. force
+            //the pwd reset
+            return false;
+        }
+        final long pwdDelta = currentTime - setTime;
+        final long minTIme = (passwordExpirationReminder - 1) * UNITS;
+        final long maxTIme = (passwordExpirationReminder) * UNITS;
+        return maxTIme >= pwdDelta
+                && minTIme <= pwdDelta;
+    }
+
+    public static boolean isPasswordAboutToExpire(UserProfile profile, long currentTime) {
+        Long setTime = (Long) profile.getAttributes().get(UserProfile.PASSWORD_SET_TIME);
+        if (setTime == null) {
+            //could be a jspwiki upgrade situation, old account etc. force
+            return false;
+        }
+        final long pwdDelta = currentTime - setTime;
+        //is this wrong?
+        return ((passwordExpiration - 1) * UNITS) <= pwdDelta
+                && ((passwordExpiration) * UNITS) >= pwdDelta;
+    }
+
+    public static boolean isPasswordNowExpired(UserProfile profile, long currentTime) {
+        Long setTime = (Long) profile.getAttributes().get(UserProfile.PASSWORD_SET_TIME);
+        if (setTime == null) {
+            //could be a jspwiki upgrade situation, old account etc. force
+            //the pwd reset
+            return true;
+        }
+        final long pwdDelta = currentTime - setTime;
+        return pwdDelta >= ((passwordExpiration) * UNITS);
+    }
+
     //return ture if it was deleted
-    private boolean check(UserProfile profile)  {
+    private boolean check(UserProfile profile) {
         final Locale loc = Locale.forLanguageTag((String) profile.getAttributes().getOrDefault(Preferences.USERPREF_LANGUAGE,
                 Locale.getDefault().toLanguageTag()));
 
@@ -127,64 +287,66 @@ public class AccountExpirationMonitor implements Runnable {
                 (String) profile.getAttributes().
                         getOrDefault(Preferences.USERPREF_DATEFORMAT, Preferences.DEFAULT_DATEFORMAT));
 
-        final long delta = System.currentTimeMillis() - profile.getLastModified().getTime();
-
+        //final long delta = System.currentTimeMillis() - profile.getLastModified().getTime();
         boolean reminderSent = false;
         //NOTE: this only applies to JSPWIKI's built in user account databases.
         //container based stuff does not apply here since we don't manage the password.
 
         //if the account has a special flag to prevent password expiration, check that
-        if (!"true".equalsIgnoreCase((String) profile.getAttributes().get("PWD_NEVER_EXPIRE"))) {
+        if (!isNeverExpires(profile)) {
 
-            if (profile.getAttributes().get("PWD_EXPIRED") == null
-                    || Boolean.FALSE == profile.getAttributes().get("PWD_EXPIRED")) {
-                //if we are not expired. check for password expiration
+            if (!isPasswordExpired(profile)) {
                 Long setTime = (Long) profile.getAttributes().get("PASSWORD_SET_TIME");
                 if (setTime == null) {
-                    //could be a jspwiki upgrade situation, old account etc. force
-                    //the pwd reset
-                    return false;
+                    setTime = Long.MIN_VALUE;
                 }
                 final long passwordExpirationDate = setTime + passwordExpiration;
                 final String formatedDate = sdf.format(new Date(passwordExpirationDate));
-                final long pwdDelta = System.currentTimeMillis() - setTime;
-                boolean sendReminder = false;
-                if ((passwordExpirationReminder * UNITS) > pwdDelta && pwdDelta < ((passwordExpirationReminder + 1) * UNITS)) {
-                    //it's the day of the reminder, fire off the email.
-                    sendReminder = true;
-                    String subject = MessageFormat.format(
-                            bundle.getString(PW_REMINDER_SUBJECT),
-                            engine.getWikiProperties().getProperty(Engine.PROP_APPNAME));
-                    String body = MessageFormat.format(
-                            bundle.getString(PW_REMINDER_BODY),
-                            profile.getFullname(),
-                            formatedDate,
-                            engine.getWikiProperties().getProperty("jspwiki.publicUrl"));
-                    try {
-                        MailUtil.sendMessage(engine.getWikiProperties(), profile.getEmail(), subject, body);
-                    } catch (MessagingException ex) {
-                        LOG.warn("failed to email to " + profile.getEmail() + " " + ex.getMessage());
-                    }
-                }
-                if (((passwordExpiration - 1) * UNITS) > pwdDelta && pwdDelta < ((passwordExpiration) * UNITS)) {
-                    //another reminder the day before
-                    sendReminder = true;
-                    String subject = MessageFormat.format(
-                            bundle.getString(PW_REMINDER_SUBJECT),
-                            engine.getWikiProperties().getProperty(Engine.PROP_APPNAME));
-                    String body = MessageFormat.format(
-                            bundle.getString(PW_REMINDER_BODY),
-                            profile.getFullname(),
-                            formatedDate,
-                            engine.getWikiProperties().getProperty("jspwiki.publicUrl"));
-                    try {
-                        MailUtil.sendMessage(engine.getWikiProperties(), profile.getEmail(), subject, body);
-                    } catch (MessagingException ex) {
-                        LOG.warn("failed to email to " + profile.getEmail() + " " + ex.getMessage());
-                    }
-                }
 
-                if (((passwordExpiration) * UNITS) > pwdDelta) {
+                //if we are not expired. check for password expiration
+                if (isPasswordNearReminder(profile, System.currentTimeMillis())) {
+                    //it's the day of the reminder, fire off the email.
+                    reminderSent = true;
+                    String subject = MessageFormat.format(
+                            bundle.getString(PW_REMINDER_SUBJECT),
+                            engine.getWikiProperties().getProperty(Engine.PROP_APPNAME));
+                    String body = MessageFormat.format(
+                            bundle.getString(PW_REMINDER_BODY),
+                            profile.getFullname(),
+                            formatedDate,
+                            engine.getWikiProperties().getProperty("jspwiki.publicUrl"));
+                    try {
+                        MailUtil.sendMessage(engine.getWikiProperties(), profile.getEmail(), subject, body);
+                    } catch (MessagingException ex) {
+                        LOG.warn("failed to email to " + profile.getEmail() + " " + ex.getMessage());
+                    }
+                } else if (isPasswordAboutToExpire(profile, System.currentTimeMillis())) {
+                    //another reminder the day before
+                    reminderSent = true;
+                    String subject = MessageFormat.format(
+                            bundle.getString(PW_REMINDER_SUBJECT),
+                            engine.getWikiProperties().getProperty(Engine.PROP_APPNAME));
+                    String body = MessageFormat.format(
+                            bundle.getString(PW_REMINDER_BODY),
+                            profile.getFullname(),
+                            formatedDate,
+                            engine.getWikiProperties().getProperty("jspwiki.publicUrl"));
+                    try {
+                        MailUtil.sendMessage(engine.getWikiProperties(), profile.getEmail(), subject, body);
+                    } catch (MessagingException ex) {
+                        LOG.warn("failed to email to " + profile.getEmail() + " " + ex.getMessage());
+                    }
+                } else if (isPasswordNowExpired(profile, System.currentTimeMillis())) {
+                    //set it to expired
+                    reminderSent = true;
+                    profile.getAttributes().put(UserProfile.PWD_EXPIRED, true);
+                    Context context = Wiki.context().create(engine, null);
+                    try {
+                        //persist the change.
+                        mgr.getUserDatabase().save(profile, false);
+                    } catch (WikiException ex) {
+                        LOG.error("failed to persist pwd expiration notice to " + profile.getLoginName(), ex);
+                    }
                     //password is now expired and will need to be changed at sign in time.
                     LOG.info(profile.getLoginName() + " password has expired");
                     String subject = MessageFormat.format(
@@ -204,19 +366,15 @@ public class AccountExpirationMonitor implements Runnable {
                 }
             }
         }
-        if (reminderSent) {
-            //no need to check account expiration at this point.
-            return false;
-        }
 
         //if the account has a special flag that prevents account deletion, check that
-        if ("true".equalsIgnoreCase((String) profile.getAttributes().get("NEVER_DELETE"))) {
+        if (isNeverDelete(profile)) {
             return false;
         }
         //check for account activity
         final long accountDeletionDate = profile.getLastModified().getTime() + (accountAutomaticDeletion * UNITS);
         final String formatedDate = sdf.format(new Date(accountDeletionDate));
-        if (delta > accountInactivityReminder * UNITS && delta < (accountInactivityReminder + 1) * UNITS) {
+        if (shouldSendAccountInactivityReminder(profile, System.currentTimeMillis())) {
             //send reminder to use the account within accountAutomaticDeletion-accountInactivityReminder days
             //or it will be deleted
 
@@ -234,8 +392,7 @@ public class AccountExpirationMonitor implements Runnable {
                 LOG.warn("failed to email to " + profile.getEmail() + " " + ex.getMessage());
             }
 
-        }
-        if (delta > accountDeletionReminder * UNITS && delta < (accountDeletionReminder + 1) * UNITS) {
+        } else if (shouldSend2ndAccountReminder(profile, System.currentTimeMillis())) {
             //send reminder to use the account within accountAutomaticDeletion-accountInactivityReminder days
             //or it will be deleted
             String subject = MessageFormat.format(
@@ -251,9 +408,7 @@ public class AccountExpirationMonitor implements Runnable {
             } catch (MessagingException ex) {
                 LOG.warn("failed to email to " + profile.getEmail() + " " + ex.getMessage());
             }
-        }
-
-        if (delta > (accountDeletionReminder - 1) * UNITS && delta < (accountDeletionReminder) * UNITS) {
+        } else if (shouldSendFinalReminder(profile, System.currentTimeMillis())) {
             //send final reminder to use the account within accountAutomaticDeletion-accountInactivityReminder days
             //or it will be deleted
 
@@ -270,9 +425,7 @@ public class AccountExpirationMonitor implements Runnable {
             } catch (MessagingException ex) {
                 LOG.warn("failed to email to " + profile.getEmail() + " " + ex.getMessage());
             }
-        }
-
-        if (delta > accountAutomaticDeletion * UNITS) {
+        } else if (shouldDeleteUserProfile(profile, System.currentTimeMillis())) {
             //delete the account
             String subject = MessageFormat.format(
                     bundle.getString(PW_ACCOUNT_INACTIVITY_SUBJECT_DELETED),
@@ -286,72 +439,8 @@ public class AccountExpirationMonitor implements Runnable {
             } catch (MessagingException ex) {
                 LOG.warn("failed to email to " + profile.getEmail() + " " + ex.getMessage());
             }
-            try {
-                mgr.deleteUser(profile);
-            } catch (WikiSecurityException ex) {
-                LOG.error("failed to delete user", ex);
-            }
-            PageManager manager = engine.getManager(PageManager.class);
-            Collection<Page> allPages;
-            try {
-                allPages = manager.getAllPages();
-            } catch (ProviderException ex) {
-                LOG.error("Failed to get all pages for removing ACL references to " + profile.getLoginName(), ex);
-                return true;
-            }
-            for (Page p : allPages) {
-                if (p.getAcl() != null) {
-                    Enumeration<AclEntry> aclEntries = p.getAcl().aclEntries();
-                    boolean changed = false;
-                    boolean changeneeded = false;
-                    String content = p.getWiki();
-                    while (aclEntries.hasMoreElements()) {
-                        AclEntry nextElement = aclEntries.nextElement();
-                        if (nextElement.getPrincipal().getName().equals(profile.getLoginName())
-                                || nextElement.getPrincipal().getName().equals(profile.getWikiName())
-                                || nextElement.getPrincipal().getName().equals(profile.getEmail())) {
-                            changeneeded = true;
-                        }
-                    }
-                    if (changeneeded) {
-                        Matcher matcher = DefaultAclManager.ACL_PATTERN.matcher(content);
-                        //remove the entry
-                        //there's no way easy way to get the ACL statement from the page as is
-                        //or edit it. best we can do is regex it, then remove the deleted user.
-                        
-                        while (matcher.find()) {
-                            final String statement = content.substring(matcher.start(), matcher.end());
-                            String replacement = statement.replace(profile.getLoginName(), "");
-                            replacement = replacement.replace(profile.getWikiName(), "");
-                            replacement = replacement.replace(profile.getEmail(), "");
-                            content = content.replace(statement, replacement);
-                            changed = true;
-                        }
-                        if (changed) {
-                            try {
-                                //how do we set the page ACLs?
-                                manager.putPageText(p, content);
-                            } catch (ProviderException ex) {
-                                LOG.error(ex.getMessage(), ex);
-                            }
-                        }
-                    }
 
-                }
-            }
-            //update the groups that they were in, if any
-            //and if there's no one else in the group, delete the group.
-            //send an email, sorry to see you go. you can always sign up again.
-            //but we might have a new risk. pages with explicit user account permissions for the 
-            //now deleted account...if someone makes a new account with the same name,
-            //it might not be the same person. so... we need to check every page
-            //then alter the permission statement to remove them.
-            //if the page had permissions to group that might have been deleted, nuke that too
-            //however if there's no more users in the permission list, set it to an admin
-            //account and email the admins about this. effectively the page is now orphaned
-            //and instead of making it public access (removing the permission check)
-            //we have to attach it to someone.
-            return true;
+            return deleteUserProfile(profile, mgr, engine);
         }
 
         return false;
@@ -366,7 +455,120 @@ public class AccountExpirationMonitor implements Runnable {
         }
     }
 
-    private void sendAlert(UserProfile profile, String subjectKey, String bodyKey, long accountDeletionDate) {
+    public static boolean isNeverDelete(UserProfile profile) {
+        return "true".equalsIgnoreCase((String) profile.getAttributes().get(UserProfile.NEVER_DELETE));
+    }
 
+    public static boolean shouldSendAccountInactivityReminder(UserProfile profile, long currentTIme) {
+        final long delta = currentTIme - profile.getLastModified().getTime();
+        final long minTime = ((accountInactivityReminder - 1) * UNITS);
+        final long maxTime = ((accountInactivityReminder) * UNITS);
+        boolean b = delta >= minTime;
+        boolean c = delta <= maxTime;
+        return (b && c);
+
+    }
+
+    /**
+     * the reminder
+     *
+     * @param profile
+     * @param currentTIme
+     * @return
+     */
+    public static boolean shouldSend2ndAccountReminder(UserProfile profile, long currentTIme) {
+        final long delta = currentTIme - profile.getLastModified().getTime();
+
+        return (delta >= ((accountDeletionReminder - 1) * UNITS)
+                && delta <= ((accountDeletionReminder) * UNITS));
+    }
+
+    /**
+     * day before deletion
+     *
+     * @param profile
+     * @param currentTIme
+     * @return
+     */
+    public static boolean shouldSendFinalReminder(UserProfile profile, long currentTIme) {
+        final long delta = currentTIme - profile.getLastModified().getTime();
+        return (delta >= ((accountAutomaticDeletion - 1) * UNITS)
+                && (delta <= (accountAutomaticDeletion) * UNITS));
+    }
+
+    public static boolean shouldDeleteUserProfile(UserProfile profile, long currentTIme) {
+        final long delta = currentTIme - profile.getLastModified().getTime();
+
+        return delta >= (accountAutomaticDeletion * UNITS);
+    }
+
+    public static boolean deleteUserProfile(UserProfile profile, UserManager mgr, Engine engine) {
+        try {
+            mgr.deleteUser(profile);
+            LOG.info(profile.getLoginName() + " has been deleted due to inactivity");
+        } catch (WikiSecurityException ex) {
+            LOG.error("failed to delete user", ex);
+        }
+        PageManager manager = engine.getManager(PageManager.class);
+        Collection<Page> allPages;
+        try {
+            allPages = manager.getAllPages();
+        } catch (ProviderException ex) {
+            LOG.error("Failed to get all pages for removing ACL references to " + profile.getLoginName(), ex);
+            return true;
+        }
+        for (Page p : allPages) {
+            if (p.getAcl() != null) {
+                Enumeration<AclEntry> aclEntries = p.getAcl().aclEntries();
+                boolean changed = false;
+                boolean changeneeded = false;
+                String content = p.getWiki();
+                while (aclEntries.hasMoreElements()) {
+                    AclEntry nextElement = aclEntries.nextElement();
+                    if (nextElement.getPrincipal().getName().equals(profile.getLoginName())
+                            || nextElement.getPrincipal().getName().equals(profile.getWikiName())
+                            || nextElement.getPrincipal().getName().equals(profile.getEmail())) {
+                        changeneeded = true;
+                    }
+                }
+                if (changeneeded) {
+                    Matcher matcher = DefaultAclManager.ACL_PATTERN.matcher(content);
+                    //remove the entry
+                    //there's no way easy way to get the ACL statement from the page as is
+                    //or edit it. best we can do is regex it, then remove the deleted user.
+
+                    while (matcher.find()) {
+                        final String statement = content.substring(matcher.start(), matcher.end());
+                        String replacement = statement.replace(profile.getLoginName(), "");
+                        replacement = replacement.replace(profile.getWikiName(), "");
+                        replacement = replacement.replace(profile.getEmail(), "");
+                        content = content.replace(statement, replacement);
+                        changed = true;
+                    }
+                    if (changed) {
+                        try {
+                            //how do we set the page ACLs?
+                            manager.putPageText(p, content);
+                        } catch (ProviderException ex) {
+                            LOG.error(ex.getMessage(), ex);
+                        }
+                    }
+                }
+
+            }
+        }
+        return true;
+        //update the groups that they were in, if any
+        //and if there's no one else in the group, delete the group.
+        //send an email, sorry to see you go. you can always sign up again.
+        //but we might have a new risk. pages with explicit user account permissions for the 
+        //now deleted account...if someone makes a new account with the same name,
+        //it might not be the same person. so... we need to check every page
+        //then alter the permission statement to remove them.
+        //if the page had permissions to group that might have been deleted, nuke that too
+        //however if there's no more users in the permission list, set it to an admin
+        //account and email the admins about this. effectively the page is now orphaned
+        //and instead of making it public access (removing the permission check)
+        //we have to attach it to someone.    }
     }
 }
